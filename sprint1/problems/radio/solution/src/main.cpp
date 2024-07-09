@@ -16,7 +16,7 @@ void StartServer(uint16_t port) {
 
     for (;;) {
         udp::endpoint remote_endpoint;
-        std::vector<char> recv_buf;
+        std::vector<char> recv_buf(65000);
 
         size_t datagram_size = socket.receive_from(boost::asio::buffer(recv_buf), remote_endpoint);
         player.PlayBuffer(recv_buf.data(), datagram_size / player.GetFrameSize(), 1.5s);
