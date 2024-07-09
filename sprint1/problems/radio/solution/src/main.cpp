@@ -1,5 +1,4 @@
-/*
- #include "audio.h"
+#include "audio.h"
 
 #include <boost/asio.hpp>
 #include <array>
@@ -10,8 +9,6 @@ using net::ip::udp;
 using namespace std::literals;
 
 void StartServer(uint16_t port) {
-    boost::system::error_code ec;
-
     net::io_context io_context;
     udp::socket socket(io_context, udp::endpoint(udp::v4(), port));
 
@@ -22,8 +19,9 @@ void StartServer(uint16_t port) {
         std::vector<char> recv_buf;
 
         size_t datagram_size = socket.receive_from(boost::asio::buffer(recv_buf), remote_endpoint);
-
         player.PlayBuffer(recv_buf.data(), datagram_size / player.GetFrameSize(), 1.5s);
+
+        size_t size = socket.send_to(net::buffer("Thank you for the message!"sv), remote_endpoint);
     }
 }
 
@@ -33,10 +31,7 @@ void StartClient(uint16_t port) {
 
     udp::socket socket(io_context, udp::v4());
 
-    auto endpoint = udp::endpoint(net::ip::make_address("127.0.0.1"sv, ec), port);
-    if (ec) {
-        std::cout << "Unable to make IP address"sv << std::endl;
-    }
+    auto endpoint = udp::endpoint(net::ip::make_address("192.168.3.14"sv, ec), port);
 
     Recorder recoder(ma_format_u8, 1);
     
@@ -47,6 +42,11 @@ void StartClient(uint16_t port) {
     socket.send_to(net::buffer(data.data, data.frames * recoder.GetFrameSize()), endpoint);
 
     std::cout << "Recording has been sent successfully" << std::endl;
+
+    std::array<char, 1024> buf;
+    udp::endpoint sender_endpoint;
+    size_t size = socket.receive_from(boost::asio::buffer(buf), sender_endpoint);
+    std::cout << std::string_view(buf.data(), size) << std::endl;
 }
 
 int main(int argc, char** argv) {
@@ -54,18 +54,25 @@ int main(int argc, char** argv) {
         std::cout << "Usage: "sv << argv[0] << " <\"client\" or \"server\"> <server port>"sv << std::endl;
         return 1;
     }
-
-    if (argv[1] == "client"sv) {
-        StartClient(*argv[2]);
-    } else if (argv[1] == "server"sv) {
-        StartServer(*argv[2]);
-    } else {
-        std::cout << "Unknown role. Enter \"client\" or \"server\""sv << std::endl;
+    try {
+        if (argv[1] == "client"sv) {
+            StartClient(*argv[2]);
+        }
+        else if (argv[1] == "server"sv) {
+            StartServer(*argv[2]);
+        }
+        else {
+            std::cout << "Unknown role. Enter \"client\" or \"server\""sv << std::endl;
+            return 1;
+        }
+    }
+    catch (std::exception& e) {
+        std::cerr << e.what() << std::endl;
         return 1;
     }
 }
- */
-
+ 
+/*
 #include "audio.h"
 #include <iostream>
 
@@ -90,3 +97,4 @@ int main(int argc, char** argv) {
 
     return 0;
 }
+*/
