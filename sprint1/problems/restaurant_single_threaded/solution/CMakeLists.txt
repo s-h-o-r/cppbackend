@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.11)
 
 project(restaurant CXX)
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_COMPILER '/opt/homebrew/Cellar/llvm/18.1.8/bin/clang-18')
 
 include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
