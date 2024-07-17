@@ -239,7 +239,7 @@ public:
 
     int MakeHamburger(bool with_onion, OrderHandler handler) {
         const int order_id = ++next_order_id_;
-        /* Напишите недостающий код */
+        std::make_shared<Order>(io_, order_id, with_onion, std::move(handler))->Execute();
         return order_id;
     }
 
