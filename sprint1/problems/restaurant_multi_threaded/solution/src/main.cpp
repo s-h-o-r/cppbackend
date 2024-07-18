@@ -162,7 +162,7 @@ private:
             logger_.LogMessage("Cutlet has been roasted."sv);
             hamburger_.SetCutletRoasted();
         }
-        CheckReginess(ec);
+        CheckRediness(ec);
     }
 
     void MarinadeOnion() {
@@ -183,10 +183,10 @@ private:
             onion_marinaded_ = true;
         }
 
-        CheckReginess(ec);
+        CheckRediness(ec);
     }
 
-    void CheckReginess(sys::error_code& ec) {
+    void CheckRediness(sys::error_code& ec) {
         if (delivered_) {
             return;
         }
