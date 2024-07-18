@@ -38,7 +38,6 @@ std::optional<StringRequest> ReadRequest(tcp::socket& socket, beast::flat_buffer
 
 class RequestHandler {
 public:
-public:
     StringResponse operator()(StringRequest&& req) {
         StringResponse response;
         response.version(req.version());
