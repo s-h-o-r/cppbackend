@@ -7,20 +7,24 @@
 namespace json_loader {
 
 using namespace std::literals;
+namespace sys = boost::system;
 
 model::Road PrepareRoad(json::object& road_info) {
 
 }
 
 model::Building PrepareBuilding(json::object& building_info) {
-
+    model::Point building_point{static_cast<model::Coord>(building_info.at("x"sv).as_int64()),
+        static_cast<model::Coord>(building_info.at("y"sv).as_int64())};
+    model::Size size =
+    model::Rectangle bounds{building_info.at("x"sv)};
 }
 
 model::Office PrepareOffice(json::object& office_info) {
-    model::Point point{office_info.at("x"sv).as_int64(), 
-        office_info.at("y"sv).as_int64()};
-    model::Offset offset{office_info.at("offsetX"sv).as_int64(),
-        office_info.at("offsetY"sv).as_int64()};
+    model::Point point{static_cast<model::Coord>(office_info.at("x"sv).as_int64()), 
+        static_cast<model::Coord>(office_info.at("y"sv).as_int64())};
+    model::Offset offset{static_cast<model::Coord>(office_info.at("offsetX"sv).as_int64()),
+        static_cast<model::Coord>(office_info.at("offsetY"sv).as_int64())};
 
     auto& id = office_info.at("id"sv).as_string();
     std::string id_str(id.begin(), id.end());
@@ -65,7 +69,7 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
 
     std::string json_data((std::istreambuf_iterator<char>(json)),
                           std::istreambuf_iterator<char>());
-    json::error_code ec;
+    sys::error_code ec;
 
     json::value game_info{json::parse(json_data, ec)};
 
