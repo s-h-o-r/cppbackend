@@ -9,13 +9,13 @@ namespace json = boost::json;
 
 namespace json_loader {
 
-model::Road PrepareRoad(json::value& road_info);
+model::Road PrepareRoad(json::object& road_info);
 
-model::Building PrepareBuilding(json::value& building_info);
+model::Building PrepareBuilding(json::object& building_info);
 
-model::Office PrepareOffice(json::value& office_info);
+model::Office PrepareOffice(json::object& office_info);
 
-model::Map PrepareMap(json::value& map_info);
+model::Map PrepareMap(json::object& map_info);
 
 model::Game LoadGame(const std::filesystem::path& json_path);
 
