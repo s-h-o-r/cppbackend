@@ -11,43 +11,40 @@ using namespace std::literals;
 namespace sys = boost::system;
 
 model::Road PrepareRoad(json::object& road_info) {
-    model::Point start{static_cast<model::Coord>(road_info.at("x0"sv).as_int64()),
-        static_cast<model::Coord>(road_info.at("y0"sv).as_int64())};
+    model::Point start{json::value_to<model::Coord>(road_info.at("x0"sv)),
+        json::value_to<model::Coord>(road_info.at("y0"sv))};
     if (road_info.if_contains("x1"sv)) {
         return model::Road(model::Road::HORIZONTAL, start,
-                           static_cast<model::Coord>(road_info.at("x1"sv).as_int64()));
+                           json::value_to<model::Coord>(road_info.at("x1"sv)));
     } else {
         return model::Road(model::Road::VERTICAL, start,
-                           static_cast<model::Coord>(road_info.at("y1"sv).as_int64()));
+                           json::value_to<model::Coord>(road_info.at("y1"sv)));
     }
 }
 
 model::Building PrepareBuilding(json::object& building_info) {
-    model::Point point{static_cast<model::Coord>(building_info.at("x"sv).as_int64()),
-        static_cast<model::Coord>(building_info.at("y"sv).as_int64())};
-    model::Size size{static_cast<model::Dimension>(building_info.at("w"sv).as_int64()),
-        static_cast<model::Dimension>(building_info.at("h"sv).as_int64())};
+    model::Point point{json::value_to<model::Coord>(building_info.at("x"sv)),
+        json::value_to<model::Coord>(building_info.at("y"sv))};
+    model::Size size{json::value_to<model::Dimension>(building_info.at("w"sv)),
+        json::value_to<model::Dimension>(building_info.at("h"sv))};
 
     return model::Building{{point, size}};
 }
 
 model::Office PrepareOffice(json::object& office_info) {
-    model::Point point{static_cast<model::Coord>(office_info.at("x"sv).as_int64()), 
-        static_cast<model::Coord>(office_info.at("y"sv).as_int64())};
-    model::Offset offset{static_cast<model::Coord>(office_info.at("offsetX"sv).as_int64()),
-        static_cast<model::Coord>(office_info.at("offsetY"sv).as_int64())};
+    model::Point point{json::value_to<model::Coord>(office_info.at("x"sv)),
+        json::value_to<model::Coord>(office_info.at("y"sv))};
+    model::Offset offset{json::value_to<model::Coord>(office_info.at("offsetX"sv)),
+        json::value_to<model::Coord>(office_info.at("offsetY"sv))};
 
-    auto& id = office_info.at("id"sv).as_string();
-    std::string id_str(id.begin(), id.end());
+    std::string id_str(json::value_to<std::string>(office_info.at("id"sv)));
 
     return {model::Office::Id{id_str}, point, offset};
 }
 
 model::Map PrepareMap(json::object& map_info) {
-    auto& id = map_info.at("id"sv).get_string();
-    auto& name = map_info.at("name"sv).get_string();
-    model::Map map(model::Map::Id({id.begin(), id.end()}), 
-                   {name.begin(), name.end()});
+    model::Map map(model::Map::Id(json::value_to<std::string>(map_info.at("id"sv))),
+                   json::value_to<std::string>(map_info.at("name"sv)));
 
     json::array roads = map_info.at("roads"sv).as_array();
     for (auto it = roads.begin(); it != roads.end(); ++it) {
