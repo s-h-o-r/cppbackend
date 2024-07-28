@@ -70,7 +70,7 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
     // Загрузить модель игры из файла
     model::Game game;
 
-    std::fstream json(json_path);
+    std::ifstream json(json_path);
     if (!json.is_open()) {
         throw std::runtime_error("Cannot open the file.");
     }
