@@ -17,7 +17,6 @@ void SessionBase::Run() {
 }
 
 void SessionBase::Read() {
-    using namespace std::literals;
     request_ = {};
     stream_.expires_after(30s);
     http::async_read(stream_, buffer_, request_,
@@ -25,7 +24,6 @@ void SessionBase::Read() {
 }
 
 void SessionBase::OnRead(beast::error_code ec, [[maybe_unused]] std::size_t bytes_read) {
-    using namespace std::literals;
     if (ec == http::error::end_of_stream) {
         return Close();
     }
@@ -42,7 +40,6 @@ void SessionBase::Close() {
 }
 
 void SessionBase::OnWrite(bool close, beast::error_code ec, [[maybe_unused]] std::size_t bytes_written) {
-    using namespace std::literals;
     if (ec) {
         return ReportError(ec, "write"sv);
     }
