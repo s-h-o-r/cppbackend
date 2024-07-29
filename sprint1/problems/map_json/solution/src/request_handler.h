@@ -5,10 +5,11 @@
 #include "http_server.h"
 #include "model.h"
 
-namespace http_handler {
 namespace beast = boost::beast;
 namespace http = beast::http;
 namespace json = boost::json;
+
+namespace http_handler {
 
 class RequestHandler {
 public:

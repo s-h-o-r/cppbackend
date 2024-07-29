@@ -4,8 +4,9 @@
 
 namespace http_server {
 
+using namespace std::literals;
+
 void ReportError(beast::error_code ec, std::string_view what) {
-    using namespace std::literals;
     std::cerr << what << ": "sv << ec.message() << std::endl;
 }
 
@@ -37,8 +38,7 @@ void SessionBase::OnRead(beast::error_code ec, [[maybe_unused]] std::size_t byte
 }
 
 void SessionBase::Close() {
-    beast::error_code ec;
-    stream_.socket().shutdown(tcp::socket::shutdown_send, ec);
+    stream_.socket().shutdown(tcp::socket::shutdown_send);
 }
 
 void SessionBase::OnWrite(bool close, beast::error_code ec, [[maybe_unused]] std::size_t bytes_written) {

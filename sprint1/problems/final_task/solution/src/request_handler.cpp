@@ -1,67 +1,55 @@
 #include "request_handler.h"
 
-namespace http_handler {
+namespace model {
 
-namespace details {
+void tag_invoke(json::value_from_tag, json::value& jv, const Building& building) {
+    auto bounds = building.GetBounds();
+    jv = {
+        {"x", bounds.position.x}, {"y", bounds.position.y},
+        {"w", bounds.size.width}, {"h", bounds.size.height}
+    };
+}
 
-/*
-* На будущее: можно реализовать парсинг через перегрузку tag_invoke функцию
-* всех отдельных элементов карты, а в основной функции парсинга использвоать
-* json::value_from(). Пока оставлю как есть.
+void tag_invoke(json::value_from_tag, json::value& jv, const Office& office) {
+    auto position = office.GetPosition();
+    auto offset = office.GetOffset();
+    jv = {
+        {"id", *office.GetId()}, {"x", position.x}, {"y", position.y},
+        {"offsetX", offset.dx}, {"offsetY", offset.dy}
+    };
+}
+
+void tag_invoke(json::value_from_tag, json::value& jv, const model::Road& road) {
+    auto start = road.GetStart();
+    auto end = road.GetEnd();
+    if (road.IsVertical()) {
+        jv = {
+            {"x0", start.x}, {"y0", start.y}, {"y1", end.y}
+        };
+    } else {
+        jv = {
+            {"x0", start.x}, {"y0", start.y}, {"x1", end.x}
+        };
+    }
+}
+
 
 void tag_invoke(json::value_from_tag, json::value& jv, const model::Map& map) {
-
+    jv = {
+        {"id", *map.GetId()},
+        {"name", map.GetName()},
+        {"roads", json::value_from(map.GetRoads())},
+        {"buildings", json::value_from(map.GetBuildings())},
+        {"offices", json::value_from(map.GetOffices())}
+    };
 }
-*/
+} // namespace model
 
-} // namespace http_handler::details
-
+namespace http_handler {
 
 std::string RequestHandler::ParseMapToJson(const model::Map* map) {
-    json::object map_info_json;
-    map_info_json["id"] = *(map->GetId());
-    map_info_json["name"] = map->GetName();
-
-    const auto& roads = map->GetRoads();
-    map_info_json["roads"].emplace_array();
-    for (const model::Road& road : roads) {
-        auto start = road.GetStart();
-        auto end = road.GetEnd();
-        if (road.IsVertical()) {
-            map_info_json["roads"].as_array().push_back(
-            {
-                {"x0", start.x}, {"y0", start.y}, {"y1", end.y}
-            });
-        } else {
-            map_info_json["roads"].as_array().push_back(
-            {
-                {"x0", start.x}, {"y0", start.y}, {"x1", end.x}
-            });
-        }
-    }
-
-    const auto& buildings = map->GetBuildings();
-    map_info_json["buildings"].emplace_array();
-    for (const model::Building& building : buildings) {
-        auto bounds = building.GetBounds();
-        map_info_json["buildings"].as_array().push_back({
-            {"x", bounds.position.x}, {"y", bounds.position.y}, 
-            {"w", bounds.size.width}, {"h", bounds.size.height}
-        });
-    }
- 
-    const auto& offices = map->GetOffices();
-    map_info_json["offices"].emplace_array();
-    for (const model::Office& office : offices) {
-        auto position = office.GetPosition();
-        auto offset = office.GetOffset();
-
-        map_info_json["offices"].as_array().push_back({
-            {"id", *office.GetId()}, {"x", position.x}, {"y", position.y},
-            {"offsetX", offset.dx}, {"offsetY", offset.dy}
-        });
-    }
-    return json::serialize(json::value(std::move(map_info_json)));
+    
+    return json::serialize(json::value_from(*map));
 }
 
 }  // namespace http_handler
