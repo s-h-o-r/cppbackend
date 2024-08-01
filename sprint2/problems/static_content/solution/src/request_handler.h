@@ -24,7 +24,6 @@ public:
     void operator()(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) {
         // Обработать запрос request и отправить ответ, используя send
         http::response<Body, http::basic_fields<Allocator>> response;
-        FillBasicInfo(req, response);
 
         switch (req.method()) {
             case http::verb::get:
@@ -45,29 +44,47 @@ private:
     struct ContentType {
         ContentType() = delete;
         constexpr static std::string_view APP_JSON = "application/json";
+        constexpr static std::string_view APP_XML = "application/xml";
+        constexpr static std::string_view APP_BINARY = "application/octet-stream";
+
+        constexpr static std::string_view TXT_HTML = "text/html";
+        constexpr static std::string_view TXT_CSS = "text/css";
         constexpr static std::string_view TXT_PLAIN = "text/plain";
+        constexpr static std::string_view TXT_JS = "text/javascript";
+
+        constexpr static std::string_view IMG_PNG = "image/png";
+        constexpr static std::string_view IMG_JPEG = "image/jpeg";
+        constexpr static std::string_view IMG_GIF = "image/gif";
+        constexpr static std::string_view IMG_BMP = "image/bmp";
+        constexpr static std::string_view IMG_ICON = "image/vnd.microsoft.icon";
+        constexpr static std::string_view IMG_TIFF = "image/tiff";
+        constexpr static std::string_view IMG_SVG_XML = "image/svg+xml";
+
+        constexpr static std::string_view AUDIO_MPEG = "audio/mpeg";
     };
 
     template <typename Body, typename Allocator>
     void FillBasicInfo(http::request<Body, http::basic_fields<Allocator>>& req,
-                       http::response<Body, http::basic_fields<Allocator>>& response) {
+                       http::response<Body, http::basic_fields<Allocator>>& response,
+                       ContentType& content_type) {
         response.version(req.version());
         response.keep_alive(req.keep_alive());
-        response.set(http::field::content_type, ContentType::APP_JSON);
+        response.set(http::field::content_type, content_type);
     }
 
+    // Основная функция для обработки GET request
     template <typename Body, typename Allocator>
     void ProcessGetRequest(http::request<Body, http::basic_fields<Allocator>>& req, 
                            http::response<Body, http::basic_fields<Allocator>>& response) {
         using namespace std::literals;
         
         std::string_view target = req.target();
-        if (target.substr(0, 12) == "/api/v1/maps"s) {
+        if (target.substr(0, 12) == "/api/v1/maps"s) { // в случае расширения API здес будет проверяться только первые 4 символа target, пока так
+            FillBasicInfo(req, response, ContentType::APP_JSON);
             ProcessApiTarget(response, target);
-        } else if () {
-            
         } else {
-            MakeErrorResponse(response, http::status::bad_request);
+            FillBasicInfo(req, response, ContentType::TXT_PLAIN);
+            Process
         }
     }
 
@@ -98,7 +115,8 @@ private:
         response.content_length(response.body().size());
     }
 
-
+    // template <typename Body, typename Allocator>
+    // void Process
 
     template <typename Body, typename Allocator>
     void MakeErrorResponse(http::response<Body, http::basic_fields<Allocator>>& response,
