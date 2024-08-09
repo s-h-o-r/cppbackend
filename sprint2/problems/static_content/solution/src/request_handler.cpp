@@ -52,4 +52,15 @@ std::string RequestHandler::ParseMapToJson(const model::Map* map) {
     return json::serialize(json::value_from(*map));
 }
 
+std::string RequestHandler::EncodeUri(std::string_view uri) {
+    std::string encoded_uri;
+    
+    size_t pos = 0;
+    while (pos != std::string_view::npos) {
+
+    }
+
+    return {};
+}
+
 }  // namespace http_handler

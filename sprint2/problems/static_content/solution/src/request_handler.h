@@ -31,7 +31,7 @@ public:
                 break;
 
             default:
-                MakeErrorResponse(response, http::status::method_not_allowed);
+                MakeErrorApiResponse(response, http::status::method_not_allowed);
                 break;
         }
 
@@ -79,13 +79,21 @@ private:
         using namespace std::literals;
         
         std::string_view target = req.target();
-        if (target.substr(0, 12) == "/api/v1/maps"s) { // в случае расширения API здес будет проверяться только первые 4 символа target, пока так
+        if (target.substr(0, 12) == "/api/v1/maps"s) {
             FillBasicInfo(req, response, ContentType::APP_JSON);
             ProcessApiTarget(response, target);
         } else {
-            FillBasicInfo(req, response, ContentType::TXT_PLAIN);
-            Process
+            std::string 
+            ProcessStaticFileTerget();
         }
+    }
+
+    // Заполняем все поля как для GET request и убираем body, так как в Head отличие только в наличие body
+    template <typename Body, typename Allocator>
+    void ProcessHeadRequest(http::request<Body, http::basic_fields<Allocator>>& req,
+                           http::response<Body, http::basic_fields<Allocator>>& response) {
+        ProcessGetRequest(req, response);
+        response.body().clear();
     }
 
     template <typename Body, typename Allocator>
@@ -97,7 +105,7 @@ private:
 
             const model::Map* map = game_.FindMap(model::Map::Id(map_name));
             if (map == nullptr) {
-                MakeErrorResponse(response, http::status::not_found);
+                MakeErrorApiResponse(response, http::status::not_found);
                 return;
             }
 
@@ -115,11 +123,13 @@ private:
         response.content_length(response.body().size());
     }
 
-    // template <typename Body, typename Allocator>
-    // void Process
+    template <typename Body, typename Allocator>
+    void ProcessStaticFileTarget() {
+
+    }
 
     template <typename Body, typename Allocator>
-    void MakeErrorResponse(http::response<Body, http::basic_fields<Allocator>>& response,
+    void MakeErrorApiResponse(http::response<Body, http::basic_fields<Allocator>>& response,
                            http::status status) {
         using namespace std::literals;
 
@@ -159,7 +169,31 @@ private:
         response.content_length(response.body().size());
     }
 
+    template <typename Body, typename Allocator>
+    void MakeErrorStaticFileResponse(http::response<Body, http::basic_fields<Allocator>>& response,
+                              http::status status) {
+        using namespace std::literals;
+    
+        response.result(status);
+        response.set(http::field::content_type, ContentType::TXT_PLAIN);
+        switch (status) {
+            case http::status::not_found:
+                response.body() = "File is not found"sv;
+                break;
+
+            case http::status::bad_request:
+                response.body() = "Target is out of home directory"sv;
+                break;
+            
+            default:
+                response.body() = "Unknown error"sv;
+                break;
+        }
+        response.content_length(response.body().size());
+    }
+
     std::string ParseMapToJson(const model::Map* map);
+    std::string EncodeUri(std::string_view uri);
 };
 
 }  // namespace http_handler
