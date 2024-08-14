@@ -5,11 +5,37 @@
 #include "http_server.h"
 #include "model.h"
 
+#include <filesystem>
+
+namespace fs = std::filesystem;
+
 namespace beast = boost::beast;
 namespace http = beast::http;
 namespace json = boost::json;
 
 namespace http_handler {
+
+class Uri {
+public:
+    explicit Uri(std::string_view uri) 
+        : uri_(EncodeUri(uri))
+        , canonical_uri_(fs::weakly_canonical(uri)) {
+    }
+
+    const fs::path& GetRawUri() const;
+    const fs::path& GetCanonicalUri() const;
+
+    std::string GetFileExtention() const;
+
+    bool IsSubPath(fs::path base);
+
+private:
+    fs::path uri_;
+    fs::path canonical_uri_;
+
+    std::string EncodeUri(std::string_view uri) const;
+};
+
 
 class RequestHandler {
 public:
@@ -22,18 +48,46 @@ public:
 
     template <typename Body, typename Allocator, typename Send>
     void operator()(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) {
+        using namespace std::literals;
+
         // Обработать запрос request и отправить ответ, используя send
         http::response<Body, http::basic_fields<Allocator>> response;
+        FillBasicInfo(req, response);
 
-        switch (req.method()) {
-            case http::verb::get:
-                ProcessGetRequest(req, response);
-                break;
+        std::string_view target = req.target();
+        if (target.size() >= 4 && target.substr(0, 5) == "/api/"sv) {
+            switch (req.method()) {
+                case http::verb::get:
+                    ProcessApiTarget(response, target);
+                    break;
 
-            default:
-                MakeErrorApiResponse(response, http::status::method_not_allowed);
-                break;
+                case http::verb::head:
+                    ProcessApiTarget(response, target);
+                    response.body().clear();
+                    break;
+
+                default:
+                    MakeErrorApiResponse(response, http::status::method_not_allowed);
+                    break;
+            }
+        } else {
+            switch (req.method()) {
+                case http::verb::get:
+                    ProcessStaticFileTarget(response, target);
+                    break;
+
+                case http::verb::head:
+                    ProcessStaticFileTarget(response, target);
+                    response.body().clear();
+                    break;
+
+                default:
+                    MakeErrorStaticFileResponse(response, http::status::method_not_allowed);
+                    break;
+            }
         }
+
+
 
         send(response);
     }
@@ -65,40 +119,20 @@ private:
 
     template <typename Body, typename Allocator>
     void FillBasicInfo(http::request<Body, http::basic_fields<Allocator>>& req,
-                       http::response<Body, http::basic_fields<Allocator>>& response,
-                       ContentType& content_type) {
+                       http::response<Body, http::basic_fields<Allocator>>& response) {
         response.version(req.version());
         response.keep_alive(req.keep_alive());
-        response.set(http::field::content_type, content_type);
-    }
-
-    // Основная функция для обработки GET request
-    template <typename Body, typename Allocator>
-    void ProcessGetRequest(http::request<Body, http::basic_fields<Allocator>>& req, 
-                           http::response<Body, http::basic_fields<Allocator>>& response) {
-        using namespace std::literals;
-        
-        std::string_view target = req.target();
-        if (target.substr(0, 12) == "/api/v1/maps"s) {
-            FillBasicInfo(req, response, ContentType::APP_JSON);
-            ProcessApiTarget(response, target);
-        } else {
-            std::string 
-            ProcessStaticFileTerget();
-        }
-    }
-
-    // Заполняем все поля как для GET request и убираем body, так как в Head отличие только в наличие body
-    template <typename Body, typename Allocator>
-    void ProcessHeadRequest(http::request<Body, http::basic_fields<Allocator>>& req,
-                           http::response<Body, http::basic_fields<Allocator>>& response) {
-        ProcessGetRequest(req, response);
-        response.body().clear();
     }
 
     template <typename Body, typename Allocator>
     void ProcessApiTarget(http::response<Body, http::basic_fields<Allocator>>& response,
                           std::string_view target) {
+        using namespace std::literals;
+
+        if (target.substr(0, 12) != "/api/v1/maps"sv) {
+            MakeErrorApiResponse(response, http::status::bad_request);
+        }
+
         if (target.size() > 13) {
             std::string map_name(target.begin() + 13,
                 *(target.end() - 1) == '/' ? target.end() - 1 : target.end());
@@ -121,16 +155,24 @@ private:
             response.body() = json::serialize(json::value(std::move(maps_json)));
         }
         response.content_length(response.body().size());
+        response.result(http::status::ok);
     }
 
     template <typename Body, typename Allocator>
-    void ProcessStaticFileTarget() {
+    void ProcessStaticFileTarget(http::response<Body, http::basic_fields<Allocator>>& response,
+                                 std::string_view target) {
+        Uri uri(target);
+        if (!uri.IsSubPath(fs::current_path())) {
+            MakeErrorStaticFileResponse(response, http::status::bad_request);
+            return;
+        }
+// /// /// /// // // / //// // / 
 
     }
 
     template <typename Body, typename Allocator>
     void MakeErrorApiResponse(http::response<Body, http::basic_fields<Allocator>>& response,
-                           http::status status) {
+                              http::status status) {
         using namespace std::literals;
 
         response.result(status);
@@ -152,7 +194,7 @@ private:
                     {"message", "Invalid method"}
                 };
                 response.body() = json::serialize(jv);
-                response.set(http::field::allow, "GET"sv);
+                response.set(http::field::allow, "GET, HEAD"sv);
                 break;
             }
 
@@ -171,7 +213,7 @@ private:
 
     template <typename Body, typename Allocator>
     void MakeErrorStaticFileResponse(http::response<Body, http::basic_fields<Allocator>>& response,
-                              http::status status) {
+                                     http::status status) {
         using namespace std::literals;
     
         response.result(status);
@@ -185,6 +227,11 @@ private:
                 response.body() = "Target is out of home directory"sv;
                 break;
             
+            case http::status::method_not_allowed:
+                response.body() = "Method not allowed"sv;
+                response.set(http::field::allow, "GET, HEAD"sv);
+                break;
+
             default:
                 response.body() = "Unknown error"sv;
                 break;
@@ -193,7 +240,6 @@ private:
     }
 
     std::string ParseMapToJson(const model::Map* map);
-    std::string EncodeUri(std::string_view uri);
 };
 
 }  // namespace http_handler
