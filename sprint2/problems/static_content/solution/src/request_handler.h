@@ -6,6 +6,8 @@
 #include "model.h"
 
 #include <filesystem>
+#include <optional>
+#include <unordered_map>
 
 namespace fs = std::filesystem;
 
@@ -14,6 +16,12 @@ namespace http = beast::http;
 namespace json = boost::json;
 
 namespace http_handler {
+
+enum class Extention {
+    htm, html, css, txt, js, json, xml,
+    png, jpg, jpe, jpeg, gif, bmp, ico,
+    tiff, tif, svg, svgz, mp3
+};
 
 class Uri {
 public:
@@ -25,13 +33,22 @@ public:
     const fs::path& GetRawUri() const;
     const fs::path& GetCanonicalUri() const;
 
-    std::string GetFileExtention() const;
+    std::optional<Extention> GetFileExtention() const;
 
-    bool IsSubPath(fs::path base);
+    bool IsSubPath(fs::path base) const;
 
 private:
     fs::path uri_;
     fs::path canonical_uri_;
+    std::unordered_map<std::string, Extention> extention_map_ = {
+        {".htm", Extention::htm}, {".html", Extention::html}, {".css", Extention::css},
+        {".txt", Extention::txt}, {".js", Extention::js}, {".json", Extention::json},
+        {".xml", Extention::xml}, {".png", Extention::png}, {".jpg", Extention::jpg},
+        {".jpe", Extention::jpe}, {".jpeg", Extention::jpeg}, {".gif", Extention::gif},
+        {".bmp", Extention::bmp}, {".ico", Extention::ico}, {".tiff", Extention::tiff},
+        {".tif", Extention::tif}, {".svg", Extention::svg}, {".svgz", Extention::svgz},
+        {".mp3", Extention::mp3}
+    };
 
     std::string EncodeUri(std::string_view uri) const;
 };
@@ -117,6 +134,16 @@ private:
         constexpr static std::string_view AUDIO_MPEG = "audio/mpeg";
     };
 
+    const std::unordered_map<Extention, std::string_view> content_type_map_ = {
+        {Extention::htm, ContentType::TXT_HTML}, {Extention::html, ContentType::TXT_HTML}, {Extention::css, ContentType::TXT_CSS},
+        {Extention::txt, ContentType::TXT_PLAIN}, {Extention::js, ContentType::TXT_JS}, {Extention::json, ContentType::APP_JSON},
+        {Extention::xml, ContentType::APP_XML}, {Extention::png, ContentType::IMG_PNG}, {Extention::jpg, ContentType::IMG_JPEG},
+        {Extention::jpe, ContentType::IMG_JPEG}, {Extention::jpeg, ContentType::IMG_JPEG}, {Extention::gif, ContentType::IMG_GIF},
+        {Extention::bmp, ContentType::IMG_BMP}, {Extention::ico, ContentType::IMG_ICON}, {Extention::tiff, ContentType::IMG_TIFF},
+        {Extention::tif, ContentType::IMG_TIFF}, {Extention::svg, ContentType::IMG_SVG_XML}, {Extention::svgz, ContentType::IMG_SVG_XML},
+        {Extention::mp3, ContentType::AUDIO_MPEG}
+    };
+
     template <typename Body, typename Allocator>
     void FillBasicInfo(http::request<Body, http::basic_fields<Allocator>>& req,
                        http::response<Body, http::basic_fields<Allocator>>& response) {
@@ -154,6 +181,8 @@ private:
             }
             response.body() = json::serialize(json::value(std::move(maps_json)));
         }
+
+        response.set(http::field::content_type, ContentType::APP_JSON);
         response.content_length(response.body().size());
         response.result(http::status::ok);
     }
@@ -166,8 +195,24 @@ private:
             MakeErrorStaticFileResponse(response, http::status::bad_request);
             return;
         }
-// /// /// /// // // / //// // / 
 
+        http::file_body::value_type file;
+
+        if (http_server::sys::error_code ec; file.open(target.begin(), beast::file_mode::read, ec), ec) {
+            MakeErrorStaticFileResponse(response, http::status::not_found);
+            return;
+        }
+
+        auto file_extention = uri.GetFileExtention();
+
+        if (!file_extention.has_value()) {
+            response.set(http::field::content_type, ContentType::APP_BINARY);
+        } else {
+            response.set(http::field::content_type, content_type_map_.at(*file_extention));
+        }
+
+        response.body() = std::move(file);
+        response.prepare_payload();
     }
 
     template <typename Body, typename Allocator>
@@ -176,6 +221,7 @@ private:
         using namespace std::literals;
 
         response.result(status);
+        response.set(http::field::content_type, ContentType::APP_JSON);
         switch (status) {
             case http::status::not_found:
             {

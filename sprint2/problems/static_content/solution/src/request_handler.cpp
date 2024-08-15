@@ -77,11 +77,26 @@ const fs::path& Uri::GetCanonicalUri() const {
     return canonical_uri_;
 }
 
-std::string Uri::GetFileExtention() const {
-    return canonical_uri_.extension().string();
+std::optional<Extention> Uri::GetFileExtention() const {
+    auto extention = canonical_uri_.extension().string();
+    if (extention.empty()) {
+        return std::nullopt;
+    }
+
+    for (int i = 0; i < extention.length(); ++i) {
+        if (std::isupper(extention[i])) {
+            std::tolower(extention[i]);
+        }
+    }
+
+    if (!extention_map_.contains(extention)) {
+        return std::nullopt;
+    }
+
+    return extention_map_.at(extention);
 }
 
-bool Uri::IsSubPath(fs::path base) {
+bool Uri::IsSubPath(fs::path base) const {
     base = fs::weakly_canonical(base);
     for (auto b = base.begin(), p = canonical_uri_.begin(); b != base.end(); ++b, ++p) {
         if (p == canonical_uri_.end() || *p != *b) {
