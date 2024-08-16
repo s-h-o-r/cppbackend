@@ -7,6 +7,7 @@
 
 #include <filesystem>
 #include <optional>
+#include <string_view>
 #include <unordered_map>
 
 namespace fs = std::filesystem;
@@ -64,49 +65,15 @@ public:
     RequestHandler& operator=(const RequestHandler&) = delete;
 
     template <typename Body, typename Allocator, typename Send>
-    void operator()(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) {
+    void operator()(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) const {
         using namespace std::literals;
-
-        // Обработать запрос request и отправить ответ, используя send
-        http::response<Body, http::basic_fields<Allocator>> response;
-        FillBasicInfo(req, response);
 
         std::string_view target = req.target();
         if (target.size() >= 4 && target.substr(0, 5) == "/api/"sv) {
-            switch (req.method()) {
-                case http::verb::get:
-                    ProcessApiTarget(response, target);
-                    break;
-
-                case http::verb::head:
-                    ProcessApiTarget(response, target);
-                    response.body().clear();
-                    break;
-
-                default:
-                    MakeErrorApiResponse(response, http::status::method_not_allowed);
-                    break;
-            }
+            SendApiResponse(req, std::forward<Send>(send), target);
         } else {
-            switch (req.method()) {
-                case http::verb::get:
-                    ProcessStaticFileTarget(response, target);
-                    break;
-
-                case http::verb::head:
-                    ProcessStaticFileTarget(response, target);
-                    response.body().clear();
-                    break;
-
-                default:
-                    MakeErrorStaticFileResponse(response, http::status::method_not_allowed);
-                    break;
-            }
+            SendStaticFile(req, std::forward<Send>(send), target);
         }
-
-
-
-        send(response);
     }
 
 private:
@@ -135,157 +102,80 @@ private:
     };
 
     const std::unordered_map<Extention, std::string_view> content_type_map_ = {
-        {Extention::htm, ContentType::TXT_HTML}, {Extention::html, ContentType::TXT_HTML}, {Extention::css, ContentType::TXT_CSS},
-        {Extention::txt, ContentType::TXT_PLAIN}, {Extention::js, ContentType::TXT_JS}, {Extention::json, ContentType::APP_JSON},
-        {Extention::xml, ContentType::APP_XML}, {Extention::png, ContentType::IMG_PNG}, {Extention::jpg, ContentType::IMG_JPEG},
-        {Extention::jpe, ContentType::IMG_JPEG}, {Extention::jpeg, ContentType::IMG_JPEG}, {Extention::gif, ContentType::IMG_GIF},
-        {Extention::bmp, ContentType::IMG_BMP}, {Extention::ico, ContentType::IMG_ICON}, {Extention::tiff, ContentType::IMG_TIFF},
-        {Extention::tif, ContentType::IMG_TIFF}, {Extention::svg, ContentType::IMG_SVG_XML}, {Extention::svgz, ContentType::IMG_SVG_XML},
+        {Extention::htm, ContentType::TXT_HTML}, {Extention::html, ContentType::TXT_HTML}, 
+        {Extention::css, ContentType::TXT_CSS},
+        {Extention::txt, ContentType::TXT_PLAIN}, 
+        {Extention::js, ContentType::TXT_JS},
+        {Extention::json, ContentType::APP_JSON},
+        {Extention::xml, ContentType::APP_XML}, 
+        {Extention::png, ContentType::IMG_PNG},
+        {Extention::jpg, ContentType::IMG_JPEG}, {Extention::jpe, ContentType::IMG_JPEG}, {Extention::jpeg, ContentType::IMG_JPEG},
+        {Extention::gif, ContentType::IMG_GIF},
+        {Extention::bmp, ContentType::IMG_BMP}, 
+        {Extention::ico, ContentType::IMG_ICON},
+        {Extention::tiff, ContentType::IMG_TIFF}, {Extention::tif, ContentType::IMG_TIFF},
+        {Extention::svg, ContentType::IMG_SVG_XML}, {Extention::svgz, ContentType::IMG_SVG_XML},
         {Extention::mp3, ContentType::AUDIO_MPEG}
     };
 
-    template <typename Body, typename Allocator>
-    void FillBasicInfo(http::request<Body, http::basic_fields<Allocator>>& req,
-                       http::response<Body, http::basic_fields<Allocator>>& response) {
+    template <typename Request, typename Response>
+    void FillBasicInfo(Request& req, Response& response) const {
         response.version(req.version());
         response.keep_alive(req.keep_alive());
     }
 
-    template <typename Body, typename Allocator>
-    void ProcessApiTarget(http::response<Body, http::basic_fields<Allocator>>& response,
-                          std::string_view target) {
-        using namespace std::literals;
+    template <typename Request, typename Send>
+    void SendApiResponse(Request& req, Send&& send, std::string_view target) const {
+        http::response<http::string_body> response;
+        FillBasicInfo(req, response);
 
-        if (target.substr(0, 12) != "/api/v1/maps"sv) {
-            MakeErrorApiResponse(response, http::status::bad_request);
-        }
-
-        if (target.size() > 13) {
-            std::string map_name(target.begin() + 13,
-                *(target.end() - 1) == '/' ? target.end() - 1 : target.end());
-
-            const model::Map* map = game_.FindMap(model::Map::Id(map_name));
-            if (map == nullptr) {
-                MakeErrorApiResponse(response, http::status::not_found);
-                return;
-            }
-
-            response.body() = ParseMapToJson(map);
-        } else {
-            json::array maps_json;
-            const model::Game::Maps& maps = game_.GetMaps();
-            for (const auto& map : maps) {
-                maps_json.push_back({
-                    {"id", *map.GetId()}, {"name", map.GetName()}
-                                    });
-            }
-            response.body() = json::serialize(json::value(std::move(maps_json)));
-        }
-
-        response.set(http::field::content_type, ContentType::APP_JSON);
-        response.content_length(response.body().size());
-        response.result(http::status::ok);
-    }
-
-    template <typename Body, typename Allocator>
-    void ProcessStaticFileTarget(http::response<Body, http::basic_fields<Allocator>>& response,
-                                 std::string_view target) {
-        Uri uri(target);
-        if (!uri.IsSubPath(fs::current_path())) {
-            MakeErrorStaticFileResponse(response, http::status::bad_request);
-            return;
-        }
-
-        http::file_body::value_type file;
-
-        if (http_server::sys::error_code ec; file.open(target.begin(), beast::file_mode::read, ec), ec) {
-            MakeErrorStaticFileResponse(response, http::status::not_found);
-            return;
-        }
-
-        auto file_extention = uri.GetFileExtention();
-
-        if (!file_extention.has_value()) {
-            response.set(http::field::content_type, ContentType::APP_BINARY);
-        } else {
-            response.set(http::field::content_type, content_type_map_.at(*file_extention));
-        }
-
-        response.body() = std::move(file);
-        response.prepare_payload();
-    }
-
-    template <typename Body, typename Allocator>
-    void MakeErrorApiResponse(http::response<Body, http::basic_fields<Allocator>>& response,
-                              http::status status) {
-        using namespace std::literals;
-
-        response.result(status);
-        response.set(http::field::content_type, ContentType::APP_JSON);
-        switch (status) {
-            case http::status::not_found:
-            {
-                json::value jv = {
-                    {"code", "mapNotFound"},
-                    {"message", "Map not found"}
-                };
-                response.body() = json::serialize(jv);
-                break;
-            }
-
-            case http::status::method_not_allowed:
-            {
-                json::value jv = {
-                    {"code", "InvalidMethod"},
-                    {"message", "Invalid method"}
-                };
-                response.body() = json::serialize(jv);
-                response.set(http::field::allow, "GET, HEAD"sv);
-                break;
-            }
-
-            default:
-            {
-                json::value jv = {
-                    {"code", "badRequest"},
-                    {"message", "Bad request"}
-                };
-                response.body() = json::serialize(jv);
-                break;
-            }
-        }
-        response.content_length(response.body().size());
-    }
-
-    template <typename Body, typename Allocator>
-    void MakeErrorStaticFileResponse(http::response<Body, http::basic_fields<Allocator>>& response,
-                                     http::status status) {
-        using namespace std::literals;
-    
-        response.result(status);
-        response.set(http::field::content_type, ContentType::TXT_PLAIN);
-        switch (status) {
-            case http::status::not_found:
-                response.body() = "File is not found"sv;
+        switch (req.method()) {
+            case http::verb::get:
+                ProcessApiTarget(response, target);
                 break;
 
-            case http::status::bad_request:
-                response.body() = "Target is out of home directory"sv;
-                break;
-            
-            case http::status::method_not_allowed:
-                response.body() = "Method not allowed"sv;
-                response.set(http::field::allow, "GET, HEAD"sv);
+            case http::verb::head:
+                ProcessApiTarget(response, target);
+                response.body().clear();
                 break;
 
             default:
-                response.body() = "Unknown error"sv;
+                MakeErrorApiResponse(response, http::status::method_not_allowed);
                 break;
         }
-        response.content_length(response.body().size());
+        send(response);
     }
 
-    std::string ParseMapToJson(const model::Map* map);
+    template <typename Request, typename Send>
+    void SendStaticFile(Request& req, Send&& send, std::string_view target) const {
+        http::response<http::file_body> response;
+        FillBasicInfo(req, response);
+
+        switch (req.method()) {
+            case http::verb::get:
+                ProcessStaticFileTarget(response, target);
+                break;
+
+            case http::verb::head:
+                ProcessStaticFileTarget(response, target);
+                response.body().close();
+                break;
+
+            default:
+                MakeErrorStaticFileResponse(response, http::status::method_not_allowed);
+                break;
+        }
+
+        send(response);
+    }
+
+    void ProcessApiTarget(http::response<http::string_body>& response, std::string_view target) const;
+    void ProcessStaticFileTarget(http::response<http::file_body>& response, std::string_view target) const;
+
+    void MakeErrorApiResponse(http::response<http::string_body>& response, http::status status) const;
+    void MakeErrorStaticFileResponse(http::response<http::file_body>& response, http::status status) const;
+
+    std::string ParseMapToJson(const model::Map* map) const;
 };
 
 }  // namespace http_handler

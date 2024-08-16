@@ -47,6 +47,8 @@ void tag_invoke(json::value_from_tag, json::value& jv, const model::Map& map) {
 
 namespace http_handler {
 
+using namespace std::literals;
+
 namespace details {
 
 std::string EncodeUriSpaces(std::string_view sub_uri) {
@@ -129,7 +131,148 @@ std::string Uri::EncodeUri(std::string_view uri) const {
     return encoded_uri;
 }
 
-std::string RequestHandler::ParseMapToJson(const model::Map* map) {
+void RequestHandler::ProcessApiTarget(http::response<http::string_body>& response,
+                                      std::string_view target) const {
+    if (target.substr(0, 12) != "/api/v1/maps"sv) {
+        MakeErrorApiResponse(response, http::status::bad_request);
+    }
+
+    if (target.size() > 13) {
+        std::string map_name(target.begin() + 13,
+            *(target.end() - 1) == '/' ? target.end() - 1 : target.end());
+
+        const model::Map* map = game_.FindMap(model::Map::Id(map_name));
+        if (map == nullptr) {
+            MakeErrorApiResponse(response, http::status::not_found);
+            return;
+        }
+
+        response.body() = ParseMapToJson(map);
+    } else {
+        json::array maps_json;
+        const model::Game::Maps& maps = game_.GetMaps();
+        for (const auto& map : maps) {
+            maps_json.push_back({
+                {"id", *map.GetId()}, {"name", map.GetName()}
+                                });
+        }
+        response.body() = json::serialize(json::value(std::move(maps_json)));
+    }
+
+    response.set(http::field::content_type, ContentType::APP_JSON);
+    response.content_length(response.body().size());
+    response.result(http::status::ok);
+}
+
+void RequestHandler::ProcessStaticFileTarget(http::response<http::file_body>& response,
+                                             std::string_view target) const {
+    Uri uri(target);
+    if (!uri.IsSubPath(fs::current_path())) {
+        MakeErrorStaticFileResponse(response, http::status::bad_request);
+        return;
+    }
+
+    http::file_body::value_type file;
+
+    if (http_server::sys::error_code ec; file.open(target.begin(), beast::file_mode::read, ec), ec) {
+        MakeErrorStaticFileResponse(response, http::status::not_found);
+        return;
+    }
+
+    auto file_extention = uri.GetFileExtention();
+
+    if (!file_extention.has_value()) {
+        response.set(http::field::content_type, ContentType::APP_BINARY);
+    } else {
+        response.set(http::field::content_type, content_type_map_.at(*file_extention));
+    }
+
+    response.body() = std::move(file);
+    response.prepare_payload();
+    response.result(http::status::ok);
+}
+
+void RequestHandler::MakeErrorApiResponse(http::response<http::string_body>& response,
+                                          http::status status) const {
+    response.result(status);
+    response.set(http::field::content_type, ContentType::APP_JSON);
+    switch (status) {
+        case http::status::not_found:
+        {
+            json::value jv = {
+                {"code", "mapNotFound"},
+                {"message", "Map not found"}
+            };
+            response.body() = json::serialize(jv);
+            break;
+        }
+
+        case http::status::method_not_allowed:
+        {
+            json::value jv = {
+                {"code", "InvalidMethod"},
+                {"message", "Invalid method"}
+            };
+            response.body() = json::serialize(jv);
+            response.set(http::field::allow, "GET, HEAD"sv);
+            break;
+        }
+
+        default:
+        {
+            json::value jv = {
+                {"code", "badRequest"},
+                {"message", "Bad request"}
+            };
+            response.body() = json::serialize(jv);
+            break;
+        }
+    }
+    response.content_length(response.body().size());
+}
+
+void RequestHandler::MakeErrorStaticFileResponse(http::response<http::file_body>& response,
+                                                 http::status status) const {
+    response.result(status);
+    response.set(http::field::content_type, ContentType::TXT_PLAIN);
+
+    http_server::sys::error_code ec;
+    http::file_body::value_type error_file;
+    error_file.open("error.txt"sv.begin(), beast::file_mode::write, ec);
+    if (ec) {
+        throw std::runtime_error("Can't open error_file"s);
+    }
+
+    std::string_view error_message;
+    switch (status) {
+        case http::status::not_found:
+            error_message = "File is not found"sv;
+            break;
+
+        case http::status::bad_request:
+            error_message = "Target is out of home directory"sv;
+            break;
+
+        case http::status::method_not_allowed:
+            error_message = "Method not allowed"sv;
+            response.set(http::field::allow, "GET, HEAD"sv);
+            break;
+
+        default:
+            error_message = "Unknown error"sv;
+            break;
+    }
+
+    error_file.file().write(error_message.begin(), error_message.size(), ec);
+    if (ec) {
+        throw std::runtime_error("Can't write in error_file"s);
+    }
+
+    response.body() = std::move(error_file);
+    response.content_length(response.body().size());
+}
+
+std::string RequestHandler::ParseMapToJson(const model::Map* map) const {
 
     return json::serialize(json::value_from(*map));
 }
