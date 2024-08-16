@@ -99,8 +99,7 @@ std::optional<Extention> Uri::GetFileExtention() const {
 }
 
 bool Uri::IsSubPath(const fs::path& base) const {
-    fs::path path = base / canonical_uri_;
-    for (auto b = base.begin(), p = path.begin(); b != base.end(); ++b, ++p) {
+    for (auto b = base.begin(), p = canonical_uri_.begin(); b != base.end(); ++b, ++p) {
         if (p == canonical_uri_.end() || *p != *b) {
             return false;
         }
@@ -111,7 +110,7 @@ bool Uri::IsSubPath(const fs::path& base) const {
 std::string Uri::EncodeUri(std::string_view uri) const {
     std::string encoded_uri;
     
-    size_t pos = 0;
+    size_t pos = 1; // убираем первый слеш
     while (pos != std::string_view::npos) {
         size_t encoding_pos = uri.find_first_of('%', pos);
 
@@ -166,14 +165,14 @@ void RequestHandler::ProcessApiTarget(http::response<http::string_body>& respons
 
 http::status RequestHandler::ProcessStaticFileTarget(http::response<http::file_body>& response,
                                                      std::string_view target) const {
-    Uri uri(target);
+    Uri uri(target, static_files_path_);
     if (!uri.IsSubPath(static_files_path_)) {
         return http::status::bad_request;
     }
 
     http::file_body::value_type file;
 
-    if (http_server::sys::error_code ec; file.open(target.data(), beast::file_mode::read, ec), ec) {
+    if (http_server::sys::error_code ec; file.open(uri.GetCanonicalUri().string().data(), beast::file_mode::read, ec), ec) {
         return http::status::not_found;
     }
 

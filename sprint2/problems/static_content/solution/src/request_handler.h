@@ -26,9 +26,9 @@ enum class Extention {
 
 class Uri {
 public:
-    explicit Uri(std::string_view uri) 
-        : uri_(EncodeUri(uri))
-        , canonical_uri_(fs::canonical(uri)) {
+    explicit Uri(std::string_view uri, const fs::path& base) 
+        : uri_(base / EncodeUri(uri))
+        , canonical_uri_(fs::weakly_canonical(uri_)) {
     }
 
     const fs::path& GetRawUri() const;
@@ -162,7 +162,7 @@ private:
 
             case http::verb::head:
                 status = ProcessStaticFileTarget(response, target);
-                response.body().close();
+
                 break;
 
             default:
