@@ -87,7 +87,7 @@ std::optional<Extention> Uri::GetFileExtention() const {
 
     for (int i = 0; i < extention.length(); ++i) {
         if (std::isupper(extention[i])) {
-            std::tolower(extention[i]);
+            extention[i] = std::tolower(extention[i]);
         }
     }
 
@@ -98,9 +98,9 @@ std::optional<Extention> Uri::GetFileExtention() const {
     return extention_map_.at(extention);
 }
 
-bool Uri::IsSubPath(fs::path base) const {
-    base = fs::weakly_canonical(base);
-    for (auto b = base.begin(), p = canonical_uri_.begin(); b != base.end(); ++b, ++p) {
+bool Uri::IsSubPath(const fs::path& base) const {
+    fs::path path = base / canonical_uri_;
+    for (auto b = base.begin(), p = path.begin(); b != base.end(); ++b, ++p) {
         if (p == canonical_uri_.end() || *p != *b) {
             return false;
         }
@@ -164,19 +164,17 @@ void RequestHandler::ProcessApiTarget(http::response<http::string_body>& respons
     response.result(http::status::ok);
 }
 
-void RequestHandler::ProcessStaticFileTarget(http::response<http::file_body>& response,
-                                             std::string_view target) const {
+http::status RequestHandler::ProcessStaticFileTarget(http::response<http::file_body>& response,
+                                                     std::string_view target) const {
     Uri uri(target);
-    if (!uri.IsSubPath(fs::current_path())) {
-        MakeErrorStaticFileResponse(response, http::status::bad_request);
-        return;
+    if (!uri.IsSubPath(static_files_path_)) {
+        return http::status::bad_request;
     }
 
     http::file_body::value_type file;
 
-    if (http_server::sys::error_code ec; file.open(target.begin(), beast::file_mode::read, ec), ec) {
-        MakeErrorStaticFileResponse(response, http::status::not_found);
-        return;
+    if (http_server::sys::error_code ec; file.open(target.data(), beast::file_mode::read, ec), ec) {
+        return http::status::not_found;
     }
 
     auto file_extention = uri.GetFileExtention();
@@ -190,6 +188,8 @@ void RequestHandler::ProcessStaticFileTarget(http::response<http::file_body>& re
     response.body() = std::move(file);
     response.prepare_payload();
     response.result(http::status::ok);
+
+    return http::status::ok;
 }
 
 void RequestHandler::MakeErrorApiResponse(http::response<http::string_body>& response,
@@ -231,45 +231,33 @@ void RequestHandler::MakeErrorApiResponse(http::response<http::string_body>& res
     response.content_length(response.body().size());
 }
 
-void RequestHandler::MakeErrorStaticFileResponse(http::response<http::file_body>& response,
-                                                 http::status status) const {
+http::response<http::string_body> RequestHandler::MakeErrorStaticFileResponse(http::status status) const {
+    http::response<http::string_body> response;
     response.result(status);
     response.set(http::field::content_type, ContentType::TXT_PLAIN);
-
-    http_server::sys::error_code ec;
-    http::file_body::value_type error_file;
-    error_file.open("error.txt"sv.begin(), beast::file_mode::write, ec);
-    if (ec) {
-        throw std::runtime_error("Can't open error_file"s);
-    }
 
     std::string_view error_message;
     switch (status) {
         case http::status::not_found:
-            error_message = "File is not found"sv;
+            response.body() = "File is not found"sv;
             break;
 
         case http::status::bad_request:
-            error_message = "Target is out of home directory"sv;
+            response.body() = "Target is out of home directory"sv;
             break;
 
         case http::status::method_not_allowed:
-            error_message = "Method not allowed"sv;
+            response.body() = "Method not allowed"sv;
             response.set(http::field::allow, "GET, HEAD"sv);
             break;
 
         default:
-            error_message = "Unknown error"sv;
+            response.body() = "Unknown error"sv;
             break;
     }
 
-    error_file.file().write(error_message.begin(), error_message.size(), ec);
-    if (ec) {
-        throw std::runtime_error("Can't write in error_file"s);
-    }
-
-    response.body() = std::move(error_file);
     response.content_length(response.body().size());
+    return response;
 }
 
 std::string RequestHandler::ParseMapToJson(const model::Map* map) const {

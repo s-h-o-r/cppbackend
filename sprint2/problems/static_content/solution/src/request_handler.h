@@ -28,7 +28,7 @@ class Uri {
 public:
     explicit Uri(std::string_view uri) 
         : uri_(EncodeUri(uri))
-        , canonical_uri_(fs::weakly_canonical(uri)) {
+        , canonical_uri_(fs::canonical(uri)) {
     }
 
     const fs::path& GetRawUri() const;
@@ -36,7 +36,7 @@ public:
 
     std::optional<Extention> GetFileExtention() const;
 
-    bool IsSubPath(fs::path base) const;
+    bool IsSubPath(const fs::path& base) const;
 
 private:
     fs::path uri_;
@@ -57,8 +57,9 @@ private:
 
 class RequestHandler {
 public:
-    explicit RequestHandler(model::Game& game)
-        : game_{game} {
+    explicit RequestHandler(model::Game& game, const std::filesystem::path& static_files_path)
+        : game_{game}
+        , static_files_path_(fs::canonical(static_files_path)) {
     }
 
     RequestHandler(const RequestHandler&) = delete;
@@ -78,6 +79,7 @@ public:
 
 private:
     model::Game& game_;
+    std::filesystem::path static_files_path_;
 
     struct ContentType {
         ContentType() = delete;
@@ -151,29 +153,39 @@ private:
         http::response<http::file_body> response;
         FillBasicInfo(req, response);
 
+        http::status status{};
+
         switch (req.method()) {
             case http::verb::get:
-                ProcessStaticFileTarget(response, target);
+                status = ProcessStaticFileTarget(response, target);
                 break;
 
             case http::verb::head:
-                ProcessStaticFileTarget(response, target);
+                status = ProcessStaticFileTarget(response, target);
                 response.body().close();
                 break;
 
             default:
-                MakeErrorStaticFileResponse(response, http::status::method_not_allowed);
-                break;
+                auto error_response = MakeErrorStaticFileResponse(http::status::method_not_allowed);
+                FillBasicInfo(req, error_response);
+                send(error_response);
+                return;
         }
 
-        send(response);
+        if (status != http::status::ok) {
+            auto error_response = MakeErrorStaticFileResponse(status);
+            FillBasicInfo(req, error_response);
+            send(error_response);
+        } else {
+            send(response);
+        }
     }
 
     void ProcessApiTarget(http::response<http::string_body>& response, std::string_view target) const;
-    void ProcessStaticFileTarget(http::response<http::file_body>& response, std::string_view target) const;
+    http::status ProcessStaticFileTarget(http::response<http::file_body>& response, std::string_view target) const;
 
     void MakeErrorApiResponse(http::response<http::string_body>& response, http::status status) const;
-    void MakeErrorStaticFileResponse(http::response<http::file_body>& response, http::status status) const;
+    http::response<http::string_body> MakeErrorStaticFileResponse(http::status status) const;
 
     std::string ParseMapToJson(const model::Map* map) const;
 };
