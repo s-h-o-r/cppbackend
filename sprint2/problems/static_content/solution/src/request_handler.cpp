@@ -49,7 +49,7 @@ namespace http_handler {
 
 using namespace std::literals;
 
-namespace details {
+namespace detail {
 
 std::string EncodeUriSpaces(std::string_view sub_uri) {
     std::string encoded_sub_uri;
@@ -69,7 +69,12 @@ std::string EncodeUriSpaces(std::string_view sub_uri) {
     return encoded_sub_uri;
 }
 
-}; // namespace http_handler::details
+}; // namespace http_handler::detail
+
+Uri::Uri(std::string_view uri, const fs::path& base)
+    : uri_(base / ((uri == "/"sv || uri == ""sv) ? "index.html"sv : EncodeUri(uri)))
+    , canonical_uri_(fs::weakly_canonical(uri_)) {
+}
 
 const fs::path& Uri::GetRawUri() const {
     return uri_;
@@ -115,14 +120,14 @@ std::string Uri::EncodeUri(std::string_view uri) const {
         size_t encoding_pos = uri.find_first_of('%', pos);
 
         if (encoding_pos != std::string_view::npos) {
-            encoded_uri += details::EncodeUriSpaces(uri.substr(pos, encoding_pos - pos));
+            encoded_uri += detail::EncodeUriSpaces(uri.substr(pos, encoding_pos - pos));
 
             char coded_symbol = std::stoi(std::string{uri.substr(encoding_pos + 1, 2)}, 0, 16);
             encoded_uri += coded_symbol;
 
             pos = encoding_pos + 3;
         } else {
-            encoded_uri += details::EncodeUriSpaces(uri.substr(pos));
+            encoded_uri += detail::EncodeUriSpaces(uri.substr(pos));
             pos = encoding_pos;
         }
     }
@@ -134,6 +139,7 @@ void RequestHandler::ProcessApiTarget(http::response<http::string_body>& respons
                                       std::string_view target) const {
     if (target.substr(0, 12) != "/api/v1/maps"sv) {
         MakeErrorApiResponse(response, http::status::bad_request);
+        return;
     }
 
     if (target.size() > 13) {

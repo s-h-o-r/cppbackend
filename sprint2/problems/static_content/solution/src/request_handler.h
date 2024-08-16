@@ -26,10 +26,7 @@ enum class Extention {
 
 class Uri {
 public:
-    explicit Uri(std::string_view uri, const fs::path& base) 
-        : uri_(base / EncodeUri(uri))
-        , canonical_uri_(fs::weakly_canonical(uri_)) {
-    }
+    explicit Uri(std::string_view uri, const fs::path& base);
 
     const fs::path& GetRawUri() const;
     const fs::path& GetCanonicalUri() const;
@@ -133,12 +130,8 @@ private:
 
         switch (req.method()) {
             case http::verb::get:
-                ProcessApiTarget(response, target);
-                break;
-
             case http::verb::head:
                 ProcessApiTarget(response, target);
-                response.body().clear();
                 break;
 
             default:
@@ -157,12 +150,8 @@ private:
 
         switch (req.method()) {
             case http::verb::get:
-                status = ProcessStaticFileTarget(response, target);
-                break;
-
             case http::verb::head:
                 status = ProcessStaticFileTarget(response, target);
-
                 break;
 
             default:
