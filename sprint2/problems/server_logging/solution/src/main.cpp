@@ -6,6 +6,7 @@
 #include <thread>
 
 #include "json_loader.h"
+#include "logger.h"
 #include "request_handler.h"
 
 using namespace std::literals;
@@ -17,13 +18,22 @@ namespace {
 template <typename Fn>
 void RunWorkers(unsigned n, const Fn& fn) {
     n = std::max(1u, n);
+    #ifndef __clang__
     std::vector<std::jthread> workers;
+    #else
+    std::vector<std::thread> workers;
+    #endif
     workers.reserve(n - 1);
     // Запускаем n-1 рабочих потоков, выполняющих функцию fn
     while (--n) {
         workers.emplace_back(fn);
     }
     fn();
+    #ifdef __clang__
+    for (auto& worker : workers) {
+        worker.join();
+    }
+    #endif
 }
 
 }  // namespace
@@ -56,7 +66,7 @@ int main(int argc, const char* argv[]) {
         const auto address = net::ip::make_address("0.0.0.0");
         constexpr net::ip::port_type port = 8080;
         http_server::ServeHttp(ioc, {address, port}, [&handler](auto&& req, auto&& send) {
-            handler(std::forward<decltype(req)>(req), std::forward<decltype(send)>(send));
+            handler(std::forward<decltype(req)>(req), std::forward<decltype(send)>(send)); // send(handler(std::forward<decltype(req)>(req)));
         });
 
         // Эта надпись сообщает тестам о том, что сервер запущен и готов обрабатывать запросы

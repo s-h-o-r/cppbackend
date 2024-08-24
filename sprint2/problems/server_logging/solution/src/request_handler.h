@@ -63,14 +63,14 @@ public:
     RequestHandler& operator=(const RequestHandler&) = delete;
 
     template <typename Body, typename Allocator, typename Send>
-    void operator()(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) const {
+    http::message_generator operator()(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) const {
         using namespace std::literals;
 
         std::string_view target = req.target();
         if (target.size() >= 4 && target.substr(0, 5) == "/api/"sv) {
-            SendApiResponse(req, std::forward<Send>(send), target);
+            return MakeApiResponse(req, target);
         } else {
-            SendStaticFile(req, std::forward<Send>(send), target);
+            return MakeStaticFileResponse(req, target);
         }
     }
 
@@ -123,8 +123,8 @@ private:
         response.keep_alive(req.keep_alive());
     }
 
-    template <typename Request, typename Send>
-    void SendApiResponse(Request& req, Send&& send, std::string_view target) const {
+    template <typename Request>
+    http::response<http::string_body> MakeApiResponse(Request& req, std::string_view target) const {
         http::response<http::string_body> response;
         FillBasicInfo(req, response);
 
@@ -138,11 +138,11 @@ private:
                 MakeErrorApiResponse(response, http::status::method_not_allowed);
                 break;
         }
-        send(response);
+        return response;
     }
 
-    template <typename Request, typename Send>
-    void SendStaticFile(Request& req, Send&& send, std::string_view target) const {
+    template <typename Request>
+    http::message_generator MakeStaticFileResponse(Request& req, std::string_view target) const {
         http::response<http::file_body> response;
         FillBasicInfo(req, response);
 
@@ -157,16 +157,15 @@ private:
             default:
                 auto error_response = MakeErrorStaticFileResponse(http::status::method_not_allowed);
                 FillBasicInfo(req, error_response);
-                send(error_response);
-                return;
+                return error_response;
         }
 
         if (status != http::status::ok) {
             auto error_response = MakeErrorStaticFileResponse(status);
             FillBasicInfo(req, error_response);
-            send(error_response);
+            return error_response;
         } else {
-            send(response);
+            return response;
         }
     }
 
