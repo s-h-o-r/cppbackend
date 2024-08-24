@@ -1,20 +1,22 @@
+#include <boost/asio/ip/tcp.hpp>
 #include <boost/log/trivial.hpp>
 
-namespace logger {
+#include <chrono>
+#include <string_view>
 
-template <class RequestHandler>
-class LoggingRequestHandler {
-    static void LogRequest();
-    static void LogResponse();
+using namespace std::literals;
+namespace net = boost::asio;
 
-public:
-    explicit LoggingRequestHandler(RequestHandler& handler)
-        : decorated_(handler) {
-    }
+namespace http_logger {
 
-    
+template <typename Request>
+static void LogRequest(std::string_view client_ip, Request& request);
 
-private:
-    RequestHandler& decorated_;
-};
+template <typename Response>
+static void LogResponse();
+
+
+static void LogServerStart(std::string_view port, std::string_view adress);
+static void LogServerEnd(int code, std::string_view message);
+static void LogServerError(int code, std::string_view message, std::string_view where);
 } // namespace logger

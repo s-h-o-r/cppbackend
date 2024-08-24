@@ -1,12 +1,11 @@
 #include "sdk.h"
-//
+
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <iostream>
 #include <thread>
 
 #include "json_loader.h"
-#include "logger.h"
 #include "request_handler.h"
 
 using namespace std::literals;
@@ -66,7 +65,7 @@ int main(int argc, const char* argv[]) {
         const auto address = net::ip::make_address("0.0.0.0");
         constexpr net::ip::port_type port = 8080;
         http_server::ServeHttp(ioc, {address, port}, [&handler](auto&& req, auto&& send) {
-            handler(std::forward<decltype(req)>(req), std::forward<decltype(send)>(send)); // send(handler(std::forward<decltype(req)>(req)));
+            handler(std::forward<decltype(req)>(req), std::forward<decltype(send)>(send));
         });
 
         // Эта надпись сообщает тестам о том, что сервер запущен и готов обрабатывать запросы

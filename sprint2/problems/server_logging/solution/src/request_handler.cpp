@@ -51,7 +51,7 @@ using namespace std::literals;
 
 namespace detail {
 
-std::string EncodeUriSpaces(std::string_view sub_uri) {
+static std::string EncodeUriSpaces(std::string_view sub_uri) {
     std::string encoded_sub_uri;
 
     size_t pos = 0;

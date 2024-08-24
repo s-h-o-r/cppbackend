@@ -63,14 +63,14 @@ public:
     RequestHandler& operator=(const RequestHandler&) = delete;
 
     template <typename Body, typename Allocator, typename Send>
-    http::message_generator operator()(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) const {
+    void operator()(http::request<Body, http::basic_fields<Allocator>>&& req, Send&& send) const {
         using namespace std::literals;
 
         std::string_view target = req.target();
         if (target.size() >= 4 && target.substr(0, 5) == "/api/"sv) {
-            return MakeApiResponse(req, target);
+            SendApiResponse(req, std::forward<Send>(send), target);
         } else {
-            return MakeStaticFileResponse(req, target);
+            SendStaticFile(req, std::forward<Send>(send), target);
         }
     }
 
@@ -101,16 +101,16 @@ private:
     };
 
     const std::unordered_map<Extention, std::string_view> content_type_map_ = {
-        {Extention::htm, ContentType::TXT_HTML}, {Extention::html, ContentType::TXT_HTML}, 
+        {Extention::htm, ContentType::TXT_HTML}, {Extention::html, ContentType::TXT_HTML},
         {Extention::css, ContentType::TXT_CSS},
-        {Extention::txt, ContentType::TXT_PLAIN}, 
+        {Extention::txt, ContentType::TXT_PLAIN},
         {Extention::js, ContentType::TXT_JS},
         {Extention::json, ContentType::APP_JSON},
-        {Extention::xml, ContentType::APP_XML}, 
+        {Extention::xml, ContentType::APP_XML},
         {Extention::png, ContentType::IMG_PNG},
         {Extention::jpg, ContentType::IMG_JPEG}, {Extention::jpe, ContentType::IMG_JPEG}, {Extention::jpeg, ContentType::IMG_JPEG},
         {Extention::gif, ContentType::IMG_GIF},
-        {Extention::bmp, ContentType::IMG_BMP}, 
+        {Extention::bmp, ContentType::IMG_BMP},
         {Extention::ico, ContentType::IMG_ICON},
         {Extention::tiff, ContentType::IMG_TIFF}, {Extention::tif, ContentType::IMG_TIFF},
         {Extention::svg, ContentType::IMG_SVG_XML}, {Extention::svgz, ContentType::IMG_SVG_XML},
@@ -123,8 +123,8 @@ private:
         response.keep_alive(req.keep_alive());
     }
 
-    template <typename Request>
-    http::response<http::string_body> MakeApiResponse(Request& req, std::string_view target) const {
+    template <typename Request, typename Send>
+    void SendApiResponse(Request& req, Send&& send, std::string_view target) const {
         http::response<http::string_body> response;
         FillBasicInfo(req, response);
 
@@ -138,11 +138,11 @@ private:
                 MakeErrorApiResponse(response, http::status::method_not_allowed);
                 break;
         }
-        return response;
+        send(response);
     }
 
-    template <typename Request>
-    http::message_generator MakeStaticFileResponse(Request& req, std::string_view target) const {
+    template <typename Request, typename Send>
+    void SendStaticFile(Request& req, Send&& send, std::string_view target) const {
         http::response<http::file_body> response;
         FillBasicInfo(req, response);
 
@@ -157,15 +157,16 @@ private:
             default:
                 auto error_response = MakeErrorStaticFileResponse(http::status::method_not_allowed);
                 FillBasicInfo(req, error_response);
-                return error_response;
+                send(error_response);
+                return;
         }
 
         if (status != http::status::ok) {
             auto error_response = MakeErrorStaticFileResponse(status);
             FillBasicInfo(req, error_response);
-            return error_response;
+            send(error_response);
         } else {
-            return response;
+            send(response);
         }
     }
 

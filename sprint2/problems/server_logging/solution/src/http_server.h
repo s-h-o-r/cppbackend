@@ -32,14 +32,13 @@ protected:
 
     ~SessionBase() = default;
 
-
-    void Write(http::message_generator&& response) {
-
-        http::async_write(stream_, std::move(response),
-                          beast::bind_front_handler(
-                          [&response, self = GetSharedThis()](beast::error_code ec, std::size_t bytes_written) {
-            self->OnWrite(response.is_done(), ec, bytes_written);
-        }));
+    template<typename Body, typename Fields>
+    void Write(http::response<Body, Fields>&& response) {
+        auto safe_response = std::make_shared<http::response<Body, Fields>>(std::move(response));
+        http::async_write(stream_, *safe_response,
+                          [safe_response, self = GetSharedThis()](beast::error_code ec, std::size_t bytes_written) {
+            self->OnWrite(safe_response->need_eof(), ec, bytes_written);
+        });
     }
 
 private:
