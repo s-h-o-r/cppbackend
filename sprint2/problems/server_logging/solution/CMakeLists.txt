@@ -33,4 +33,4 @@ add_executable(game_server
 	src/logger.h
 )
 
-target_link_libraries(game_server PRIVATE CONAN_PKG::boost)
+target_link_libraries(game_server PRIVATE Threads::Threads CONAN_PKG::boost)
