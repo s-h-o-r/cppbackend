@@ -33,7 +33,6 @@ void LogFormatter(logging::record_view const& rec, logging::formatting_ostream& 
 }
 
 void LogServerStart(unsigned int port, std::string_view address) {
-    InitBoostLogFilter(LogFormatter);
     boost::json::value data = {
         {"port", port},
         {"address", address}
@@ -42,7 +41,6 @@ void LogServerStart(unsigned int port, std::string_view address) {
 }
 
 void LogServerEnd(unsigned int return_code, std::string_view exeption_text) {
-    InitBoostLogFilter(LogFormatter);
     if (return_code == 0) {
         BOOST_LOG_TRIVIAL(info) << logging::add_value(log_data, boost::json::value{{"code", return_code}}) << "server exited";
     } else {
@@ -55,7 +53,6 @@ void LogServerEnd(unsigned int return_code, std::string_view exeption_text) {
 }
 
 void LogServerError(unsigned int error_code, std::string_view error_message, std::string_view where) {
-    InitBoostLogFilter(LogFormatter);
     boost::json::value data = {
         {"code", error_code},
         {"text", error_message},

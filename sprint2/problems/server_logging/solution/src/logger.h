@@ -1,5 +1,6 @@
 #pragma once
 
+#include <boost/beast/http/field.hpp>
 #include <boost/beast/http/verb.hpp>
 #include <boost/json.hpp>
 #include <boost/log/trivial.hpp>
@@ -25,7 +26,7 @@ public:
 
     auto Count() {
         std::chrono::system_clock::time_point end_ts = std::chrono::system_clock::now();
-        return (end_ts - start_ts_).count();
+        return std::chrono::duration_cast<std::chrono::milliseconds>(end_ts - start_ts_).count();
     };
 
 private:
@@ -50,7 +51,6 @@ void InitBoostLogFilter(Formatter&& formatter) {
 
 template <typename Request>
 void LogRequest(std::string_view client_ip, Request& request) {
-    InitBoostLogFilter(LogFormatter);
     boost::json::value data = {
         {"ip", client_ip},
         {"URI", request.target()},
@@ -61,8 +61,7 @@ void LogRequest(std::string_view client_ip, Request& request) {
 
 template <typename Response>
 void LogResponse(long long time, Response& response) {
-    InitBoostLogFilter(LogFormatter);
-    auto content_type = response["content_type"];
+    auto content_type = response[http::field::content_type];
     if (content_type.empty()) {
         content_type = "null";
     }
