@@ -1,6 +1,7 @@
 #pragma once
 
 #include <boost/beast/http/verb.hpp>
+#include <boost/json.hpp>
 #include <boost/log/trivial.hpp>
 #include <boost/log/core.hpp>
 #include <boost/log/expressions.hpp>
@@ -32,24 +33,9 @@ private:
 };
 
 BOOST_LOG_ATTRIBUTE_KEYWORD(timestamp, "TimeStamp", boost::posix_time::ptime)
-BOOST_LOG_ATTRIBUTE_KEYWORD(message, "Message", std::string_view)
-BOOST_LOG_ATTRIBUTE_KEYWORD(code, "Code", unsigned int)
-BOOST_LOG_ATTRIBUTE_KEYWORD(ip, "IP", std::string_view)
-BOOST_LOG_ATTRIBUTE_KEYWORD(uri, "URI", std::string_view)
-BOOST_LOG_ATTRIBUTE_KEYWORD(method, "Method", std::string_view)
-BOOST_LOG_ATTRIBUTE_KEYWORD(response_time, "Response_time", long long)
-BOOST_LOG_ATTRIBUTE_KEYWORD(content_type, "ContentType", std::string_view)
-BOOST_LOG_ATTRIBUTE_KEYWORD(server_port, "ServerPort", unsigned int)
-BOOST_LOG_ATTRIBUTE_KEYWORD(client_address, "ClientAddress", std::string_view)
-BOOST_LOG_ATTRIBUTE_KEYWORD(exception, "Exception", std::string_view)
-BOOST_LOG_ATTRIBUTE_KEYWORD(error_text, "Text", std::string_view)
-BOOST_LOG_ATTRIBUTE_KEYWORD(error_where, "Where", std::string_view)
+BOOST_LOG_ATTRIBUTE_KEYWORD(log_data, "LogData", boost::json::value)
 
-void LogRequestFormatter(logging::record_view const& rec, logging::formatting_ostream& strm);
-void LogResponseFormatter(logging::record_view const& rec, logging::formatting_ostream& strm);
-void LogServerStartFormatter(logging::record_view const& rec, logging::formatting_ostream& strm);
-void LogServerEndFormatter(logging::record_view const& rec, logging::formatting_ostream& strm);
-void LogServerErrorFormatter(logging::record_view const& rec, logging::formatting_ostream& strm);
+void LogFormatter(logging::record_view const& rec, logging::formatting_ostream& strm);
 
 template <typename Formatter>
 void InitBoostLogFilter(Formatter&& formatter) {
@@ -64,20 +50,28 @@ void InitBoostLogFilter(Formatter&& formatter) {
 
 template <typename Request>
 void LogRequest(std::string_view client_ip, Request& request) {
-    InitBoostLogFilter(LogRequestFormatter);
-    BOOST_LOG_TRIVIAL(info) << logging::add_value(ip, client_ip)
-                            << logging::add_value(uri, request.target())
-                            << logging::add_value(method, http::to_string(request.method()))
-                            << "request received";
+    InitBoostLogFilter(LogFormatter);
+    boost::json::value data = {
+        {"ip", client_ip},
+        {"URI", request.target()},
+        {"method", http::to_string(request.method())}
+    };
+    BOOST_LOG_TRIVIAL(info) << logging::add_value(log_data, data) << "request received";
 }
 
 template <typename Response>
 void LogResponse(long long time, Response& response) {
-    InitBoostLogFilter(LogResponseFormatter);
-    BOOST_LOG_TRIVIAL(info) << logging::add_value(response_time, time)
-                            << logging::add_value(code, response.result_int())
-                            << logging::add_value(content_type, response["content_type"])
-                            << "response sent";
+    InitBoostLogFilter(LogFormatter);
+    auto content_type = response["content_type"];
+    if (content_type.empty()) {
+        content_type = "null";
+    }
+    boost::json::value data = {
+        {"response_time", time},
+        {"code", response.result_int()},
+        {"content_type", content_type}
+    };
+    BOOST_LOG_TRIVIAL(info) << logging::add_value(log_data, data) << "response sent";
 }
 
 

@@ -70,17 +70,18 @@ int main(int argc, const char* argv[]) {
         });
 
         // Эта надпись сообщает тестам о том, что сервер запущен и готов обрабатывать запросы
-        http_logger::LogServerStart(port, address.to_string());
         std::cout << "Server has started..."sv << std::endl;
+        http_logger::LogServerStart(port, address.to_string());
 
         // 6. Запускаем обработку асинхронных операций
         RunWorkers(std::max(1u, num_threads), [&ioc] {
             ioc.run();
         });
+
+        http_logger::LogServerEnd(0, ""sv);
     } catch (const std::exception& ex) {
         http_logger::LogServerEnd(EXIT_FAILURE, ex.what());
         std::cerr << ex.what() << std::endl;
         return EXIT_FAILURE;
     }
-    http_logger::LogServerEnd(0, ""sv);
 }
