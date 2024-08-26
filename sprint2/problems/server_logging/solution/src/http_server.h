@@ -1,5 +1,6 @@
 #pragma once
 #include "sdk.h"
+#include "logger.h"
 //
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/strand.hpp>
@@ -41,6 +42,10 @@ protected:
         });
     }
 
+    net::ip::tcp::endpoint GetRemoteEndpoint() const;
+    net::ip::tcp::endpoint GetLocalEndpoint() const;
+
+
 private:
     beast::tcp_stream stream_;
     beast::flat_buffer buffer_;
@@ -63,13 +68,20 @@ public:
     Session(tcp::socket&& socket, Handler&& request_handler)
         : SessionBase(std::move(socket))
         , request_handler_(std::forward<Handler>(request_handler)) {
+            auto local_endpoint = GetLocalEndpoint();
+            http_logger::LogServerStart(local_endpoint.port(), local_endpoint.address().to_string());
     }
 
 private:
     RequestHandler request_handler_;
 
     void HandlerRequest(HttpRequest&& request) override {
-        request_handler_(std::move(request), [self = this->shared_from_this()](auto&& response) {
+        http_logger::DurationMeasure dur;
+        auto remote_address = GetRemoteEndpoint().address();
+        http_logger::LogRequest(remote_address.to_string(), request);
+
+        request_handler_(std::move(request), [&dur, self = this->shared_from_this()](auto&& response) {
+            http_logger::LogResponse(dur.Count(), response);
             self->Write(std::move(response));
         });
     }

@@ -1,4 +1,5 @@
 #include "http_server.h"
+#include "logger.h"
 
 #include <iostream>
 
@@ -7,6 +8,7 @@ namespace http_server {
 using namespace std::literals;
 
 void ReportError(beast::error_code ec, std::string_view what) {
+    http_logger::LogServerError(ec.value(), ec.message(), what);
     std::cerr << what << ": "sv << ec.message() << std::endl;
 }
 
@@ -21,6 +23,7 @@ void SessionBase::Read() {
     stream_.expires_after(30s);
     http::async_read(stream_, buffer_, request_,
                      beast::bind_front_handler(&SessionBase::OnRead, GetSharedThis()));
+    
 }
 
 void SessionBase::OnRead(beast::error_code ec, [[maybe_unused]] std::size_t bytes_read) {
@@ -50,6 +53,14 @@ void SessionBase::OnWrite(bool close, beast::error_code ec, [[maybe_unused]] std
     }
 
     Read();
+}
+
+net::ip::tcp::endpoint SessionBase::GetRemoteEndpoint() const {
+    return stream_.socket().remote_endpoint();
+}
+
+net::ip::tcp::endpoint SessionBase::GetLocalEndpoint() const {
+    return stream_.socket().local_endpoint();
 }
 
 }  // namespace http_server

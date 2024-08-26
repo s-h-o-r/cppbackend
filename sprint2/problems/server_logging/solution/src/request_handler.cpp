@@ -115,7 +115,7 @@ bool Uri::IsSubPath(const fs::path& base) const {
 std::string Uri::EncodeUri(std::string_view uri) const {
     std::string encoded_uri;
     
-    size_t pos = 1; // убираем первый слеш
+    size_t pos = 1;
     while (pos != std::string_view::npos) {
         size_t encoding_pos = uri.find_first_of('%', pos);
 

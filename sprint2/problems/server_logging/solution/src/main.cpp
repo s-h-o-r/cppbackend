@@ -6,6 +6,7 @@
 #include <thread>
 
 #include "json_loader.h"
+#include "logger.h"
 #include "request_handler.h"
 
 using namespace std::literals;
@@ -76,7 +77,9 @@ int main(int argc, const char* argv[]) {
             ioc.run();
         });
     } catch (const std::exception& ex) {
+        http_logger::LogServerEnd(EXIT_FAILURE, ex.what());
         std::cerr << ex.what() << std::endl;
         return EXIT_FAILURE;
     }
+    http_logger::LogServerEnd(0, ""sv);
 }
