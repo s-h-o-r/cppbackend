@@ -68,8 +68,6 @@ public:
     Session(tcp::socket&& socket, Handler&& request_handler)
         : SessionBase(std::move(socket))
         , request_handler_(std::forward<Handler>(request_handler)) {
-            auto local_endpoint = GetLocalEndpoint();
-            http_logger::LogServerStart(local_endpoint.port(), local_endpoint.address().to_string());
     }
 
 private:

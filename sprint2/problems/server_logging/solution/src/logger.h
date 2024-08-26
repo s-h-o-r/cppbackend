@@ -1,9 +1,11 @@
 #pragma once
 
 #include <boost/beast/http/verb.hpp>
-#include <boost/log/core.hpp>
 #include <boost/log/trivial.hpp>
+#include <boost/log/core.hpp>
+#include <boost/log/expressions.hpp>
 #include <boost/log/utility/manipulators/add_value.hpp>
+#include <boost/log/utility/setup/common_attributes.hpp>
 #include <boost/log/utility/setup/console.hpp>
 
 #include <chrono>
@@ -51,6 +53,8 @@ void LogServerErrorFormatter(logging::record_view const& rec, logging::formattin
 
 template <typename Formatter>
 void InitBoostLogFilter(Formatter&& formatter) {
+    logging::add_common_attributes();
+    
     logging::add_console_log(
         std::cout,
         keywords::format = &formatter,
