@@ -18,7 +18,7 @@ Token PlayerTokens::GenerateUniqueToken() {
         std::ostringstream ss;
         ss << std::hex << generator1_() << generator2_();
         *token = ss.str();
-        while (ss.str().size() != 32) {
+        while (ss.str().size() < 32) {
             std::mt19937_64 generator{[this] {
                     std::uniform_int_distribution<std::mt19937_64::result_type> dist(0, 16);
                     return dist(random_device_);
