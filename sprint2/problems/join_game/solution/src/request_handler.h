@@ -189,7 +189,7 @@ private:
             MakeErrorApiResponse(response, ErrorCode::unknown_token, "Player token has not been found"sv);
             return;
         }
-
+        
         const auto& dogs = player->GetGameSession()->GetDogs();
         json::object players_on_map_json;
         for (const auto& [id, dog] : dogs) {

@@ -18,7 +18,7 @@ Token PlayerTokens::GenerateUniqueToken() {
         std::ostringstream str;
         str << std::hex << generator1_() << generator2_();
         *token = str.str();
-    } while (token_to_player_.contains(token));
+    } while (token_to_player_.contains(token) && (*token).size() != 32);
     return token;
 }
 
