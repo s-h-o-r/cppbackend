@@ -8,6 +8,7 @@
 #include "model.h"
 #include "player.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <optional>
 #include <string_view>
@@ -114,6 +115,10 @@ private:
         StringResponse response;
         try {
             FillBasicInfo(req, response);
+            
+            // to do: надо поменять систему определения запроса через switch case на деление
+            //        запросов на API и не static, а внутри уже делить их по конкретным запросам
+            //        инчае получается громоздко и неудобно
 
             switch (req.method()) {
                 case http::verb::get:
@@ -140,6 +145,15 @@ private:
                     }
                     break;
                 default:
+                    if (target.substr(0, 17) == "/api/v1/game/join"sv) {
+                        MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::invalid_method_join,
+                                             "Only POST method is expected"sv);
+                        break;
+                    } else if (target.substr(0, 20) == "/api/v1/game/players"sv) {
+                        MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::invalid_method_players,
+                                             "Invalid method"sv);
+                        break;
+                    }
                     MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::invalid_method_common, "Invalid method"sv);
                     break;
             }
@@ -162,8 +176,10 @@ private:
             return;
         }
 
-        std::string_view token_prefix = request.base().at("Authorization").substr(0, 7);
-        std::string_view token = request.base().at("Authorization").substr(7); // Убираем Bearer перед токеном
+        auto auth_content = request.base().at("Authorization");
+
+        std::string_view token_prefix = auth_content.substr(0, 7);
+        std::string_view token = auth_content.substr(std::min(static_cast<int>(auth_content.size() - 1), 7)); // Убираем Bearer перед токеном
 
         if (std::size_t token_size = 32; token_prefix != "Bearer " || token.size() != token_size) {
             MakeErrorApiResponse(response, ErrorCode::invalid_token, "Authorization header is missing"sv);
@@ -239,7 +255,8 @@ private:
     enum class ErrorCode {
         unknown,
         map_not_found, invalid_method_common, invalid_method_join,
-        invalid_argument, bad_request, invalid_token, unknown_token
+        invalid_argument, bad_request, invalid_token, unknown_token,
+        invalid_method_players
     };
 
     void MakeErrorApiResponse(StringResponse& response, ApiRequestHandler::ErrorCode code,

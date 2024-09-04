@@ -229,6 +229,10 @@ void ApiRequestHandler::MakeErrorApiResponse(StringResponse& response, ApiReques
             break;
         }
 
+        case ec::invalid_method_players:
+            response.set(http::field::cache_control, "no-cache");
+            [[fallthrough]];
+            
         case ec::invalid_method_common:
         {
             response.result(http::status::method_not_allowed);
@@ -249,6 +253,7 @@ void ApiRequestHandler::MakeErrorApiResponse(StringResponse& response, ApiReques
                 {"message", message}
             };
             response.body() = json::serialize(jv);
+            response.set(http::field::cache_control, "no-cache");
             response.set(http::field::allow, "POST");
             break;
         }
