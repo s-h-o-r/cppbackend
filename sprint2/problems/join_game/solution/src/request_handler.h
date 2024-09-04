@@ -179,7 +179,7 @@ private:
         auto auth_content = request.base().at("Authorization");
 
         std::string_view token_prefix = auth_content.substr(0, 7);
-        std::string_view token = auth_content.substr(std::min(static_cast<int>(auth_content.size() - 1), 7)); // Убираем Bearer перед токеном
+        std::string_view token = auth_content.substr(std::min(static_cast<int>(auth_content.size() - 1), 6)); // Убираем Bearer перед токеном
 
         if (std::size_t token_size = 32; token_prefix != "Bearer " || token.size() != token_size) {
             MakeErrorApiResponse(response, ErrorCode::invalid_token, "Authorization header is missing"sv);
