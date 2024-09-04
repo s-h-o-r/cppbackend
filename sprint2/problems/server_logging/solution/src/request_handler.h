@@ -67,14 +67,10 @@ public:
         using namespace std::literals;
 
         std::string_view target = req.target();
-        try {
-            if (target.size() >= 4 && target.substr(0, 5) == "/api/"sv) {
-                SendApiResponse(req, std::forward<Send>(send), target);
-            } else {
-                SendStaticFile(req, std::forward<Send>(send), target);
-            }
-        } catch (...) {
-
+        if (target.size() >= 4 && target.substr(0, 5) == "/api/"sv) {
+            SendApiResponse(req, std::forward<Send>(send), target);
+        } else {
+            SendStaticFile(req, std::forward<Send>(send), target);
         }
     }
 
