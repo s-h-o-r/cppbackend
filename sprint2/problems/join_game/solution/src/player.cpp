@@ -1,3 +1,4 @@
+#include <iomanip>
 #include <sstream>
 
 #include "player.h"
@@ -16,16 +17,10 @@ Token PlayerTokens::GenerateUniqueToken() {
     Token token{""};
     do {
         std::ostringstream ss;
-        ss << std::hex << generator1_() << generator2_();
+        ss << std::setw(16) << std::setfill('0') << std::hex << generator1_();
+        ss << std::setw(16) << std::setfill('f') << std::hex << generator2_();
         *token = ss.str();
-        while (ss.str().size() < 32) {
-            std::mt19937_64 generator{[this] {
-                    std::uniform_int_distribution<std::mt19937_64::result_type> dist(0, 16);
-                    return dist(random_device_);
-                }()};
-            ss << std::hex << generator();
-        }
-    } while (token_to_player_.contains(token) && (*token).size() != 32);
+    } while (token_to_player_.contains(token));
     return token;
 }
 
