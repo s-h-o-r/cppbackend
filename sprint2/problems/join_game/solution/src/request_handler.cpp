@@ -237,7 +237,7 @@ void ApiRequestHandler::MakeErrorApiResponse(StringResponse& response, ApiReques
         {
             response.result(http::status::method_not_allowed);
             json::value jv = {
-                {"code", "InvalidMethod"},
+                {"code", "invalidMethod"},
                 {"message", message}
             };
             response.body() = json::serialize(jv);

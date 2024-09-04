@@ -116,47 +116,41 @@ private:
         try {
             FillBasicInfo(req, response);
             
-            // to do: надо поменять систему определения запроса через switch case на деление
-            //        запросов на API и не static, а внутри уже делить их по конкретным запросам
-            //        инчае получается громоздко и неудобно
-
-            switch (req.method()) {
-                case http::verb::get:
-                case http::verb::head:
-                    if (target.substr(0, 12) == "/api/v1/maps"sv) {
+            if (target.substr(0, 12) == "/api/v1/maps"sv) {
+                switch (req.method()) {
+                    case http::verb::get:
+                    case http::verb::head:
                         ProcessApiMaps(response, target);
-                    } else if (target.substr(0, 20) == "/api/v1/game/players"sv) {
-                        ProcessApiPlayers(req, response);
-                    } else {
-                        if (target.substr(0, 17) == "/api/v1/game/join"sv) {
-                            MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::invalid_method_join,
-                                                 "Only POST method is expected"sv);
-                            break;
-                        }
-                        MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::bad_request, "Bad request"sv);
-                    }
-                    break;
-
-                case http::verb::post:
-                    if (target.substr(0, 17) == "/api/v1/game/join"sv) {
-                        ProcessApiJoin(req, response);
-                    } else {
-                        MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::bad_request, "Bad request"sv);
-                    }
-                    break;
-                default:
-                    if (target.substr(0, 17) == "/api/v1/game/join"sv) {
-                        MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::invalid_method_join,
-                                             "Only POST method is expected"sv);
                         break;
-                    } else if (target.substr(0, 20) == "/api/v1/game/players"sv) {
+                    default:
+                        MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::invalid_method_common, "Invalid method"sv);
+                        break;
+                }
+            } else if (target.substr(0, 20) == "/api/v1/game/players"sv) {
+                switch (req.method()) {
+                    case http::verb::get:
+                    case http::verb::head:
+                        ProcessApiPlayers(req, response);
+                        break;
+                    default:
                         MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::invalid_method_players,
                                              "Invalid method"sv);
                         break;
-                    }
-                    MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::invalid_method_common, "Invalid method"sv);
-                    break;
+                }
+            } else if (target.substr(0, 17) == "/api/v1/game/join"sv) {
+                switch (req.method()) {
+                    case http::verb::post:
+                        ProcessApiJoin(req, response);
+                        break;
+                    default:
+                        MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::invalid_method_join,
+                                             "Only POST method is expected"sv);
+                        break;
+                }
+            } else {
+                MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::bad_request, "Bad request"sv);
             }
+            
         } catch (...) {
             MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::unknown, "Unknown error"sv);
         }
@@ -177,9 +171,13 @@ private:
         }
 
         auto auth_content = request.base().at("Authorization");
+        if (auth_content.size() < 39 || auth_content.size() > 39) { // size of Bearer + ' ' + token.size()
+            MakeErrorApiResponse(response, ErrorCode::invalid_token, "Authorization header is missing"sv);
+            return;
+        }
 
         std::string_view token_prefix = auth_content.substr(0, 7);
-        std::string_view token = auth_content.substr(std::min(static_cast<int>(auth_content.size() - 1), 6)); // Убираем Bearer перед токеном
+        std::string_view token = auth_content.substr(7); // Убираем Bearer перед токеном
 
         if (std::size_t token_size = 32; token_prefix != "Bearer " || token.size() != token_size) {
             MakeErrorApiResponse(response, ErrorCode::invalid_token, "Authorization header is missing"sv);
