@@ -109,6 +109,8 @@ const Map::Id& GameSession::GetMapId() const {
 }
 
 Dog* GameSession::AddDog(std::string_view name) {
+    detail::ThreadChecker checker(counter_);
+
     auto dog = std::make_shared<Dog>(std::string(name));
     auto dog_id = dog->GetId();
     dogs_.emplace(dog_id, std::move(dog));

@@ -13,6 +13,31 @@
 
 #include "tagged.h"
 
+
+#include <atomic>
+
+namespace detail {
+class ThreadChecker {
+public:
+    explicit ThreadChecker(std::atomic_int& counter)
+        : counter_{counter} {
+    }
+
+    ThreadChecker(const ThreadChecker&) = delete;
+    ThreadChecker& operator=(const ThreadChecker&) = delete;
+
+    ~ThreadChecker() {
+        // assert выстрелит, если между вызовом конструктора и деструктора
+        // значение expected_counter_ изменится
+        assert(expected_counter_ == counter_);
+    }
+
+private:
+    std::atomic_int& counter_;
+    int expected_counter_ = ++counter_;
+};
+}
+
 namespace model {
 
 using Dimension = int;
@@ -136,6 +161,7 @@ public:
     explicit Dog(std::string name) noexcept
         : id_(next_dog_id++)
         , name_(name) {
+            detail::ThreadChecker varname(counter_);
     }
 
     const std::string& GetName() const noexcept;
@@ -146,6 +172,7 @@ private:
     Id id_;
     std::string name_;
 
+    std::atomic_int counter_{0};
     static inline std::uint32_t next_dog_id = 0;
 };
 
@@ -174,6 +201,8 @@ private:
     net::strand<net::io_context::executor_type> strand_;
     const Map* map_;
     IdToDogIndex dogs_;
+
+    std::atomic_int counter_{0};
 };
 
 class Game {

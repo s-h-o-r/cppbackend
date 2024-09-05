@@ -9,7 +9,9 @@
 #include "player.h"
 
 #include <algorithm>
+#include <cassert>
 #include <filesystem>
+#include <memory>
 #include <optional>
 #include <string_view>
 #include <unordered_map>
@@ -80,7 +82,7 @@ std::string ParseMapToJson(const model::Map* map);
 using StringResponse = http::response<http::string_body>;
 using FileResponse = http::response<http::file_body>;
 
-class ApiRequestHandler : std::enable_shared_from_this<ApiRequestHandler> {
+class ApiRequestHandler : public std::enable_shared_from_this<ApiRequestHandler> {
 public:
     using Strand = net::strand<net::io_context::executor_type>;
 
@@ -95,8 +97,10 @@ public:
 
     template <typename Request, typename Send>
     void operator() (Request&& req, Send&& send) {
-        std::string_view target = req.target();
-        SendApiResponse(req, std::forward<Send>(send), target);
+        net::dispatch(ioc_, [self = shared_from_this(), &req, &send] {
+            std::string_view target = req.target();
+            self->SendApiResponse(req, std::forward<Send>(send), target);
+        });
     }
 
 private:
@@ -140,7 +144,10 @@ private:
             } else if (target.substr(0, 17) == "/api/v1/game/join"sv) {
                 switch (req.method()) {
                     case http::verb::post:
-                        ProcessApiJoin(req, response);
+                        net::dispatch(strand_, [self = shared_from_this(), &req, &response] {
+                            assert(self->strand_.running_in_this_thread());
+                            self->ProcessApiJoin(req, response);
+                        });
                         break;
                     default:
                         MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::invalid_method_join,
@@ -259,10 +266,6 @@ private:
 
     void MakeErrorApiResponse(StringResponse& response, ApiRequestHandler::ErrorCode code,
                               std::string_view message) const;
-
-    //void MakeErrorApiGetResponse(StringResponse& response, http::status status) const;
-    //void MakeErrorApiAuthResponse(StringResponse& response, http::status status, std::string_view message) const;
-
 };
 
 class StaticRequestHandler {
@@ -320,10 +323,11 @@ private:
     StringResponse MakeErrorStaticFileResponse(http::status status) const;
 };
 
-class RequestHandler {
+class RequestHandler : public std::enable_shared_from_this<RequestHandler> {
 public:
     explicit RequestHandler(model::Game& game, net::io_context& ioc, std::filesystem::path&& static_files_path)
-        : api_handler_(game, ioc)
+        : ioc_(ioc)
+        , api_handler_(std::make_shared<ApiRequestHandler>(game, ioc))
         , static_handler_(std::move(fs::canonical(static_files_path))) {
     }
 
@@ -336,14 +340,17 @@ public:
 
         std::string_view target = req.target();
         if (target.size() >= 4 && target.substr(0, 5) == "/api/"sv) {
-            api_handler_(std::forward<decltype(req)>(req), std::forward<Send>(send));
+            net::dispatch(ioc_, [self = shared_from_this(), &req, &send] {
+                (*self->api_handler_)(std::forward<decltype(req)>(req), std::forward<Send>(send));
+            });
         } else {
             static_handler_(std::forward<decltype(req)>(req), std::forward<Send>(send));
         }
     }
 
 private:
-    ApiRequestHandler api_handler_;
+    net::io_context& ioc_;
+    std::shared_ptr<ApiRequestHandler> api_handler_;
     StaticRequestHandler static_handler_;
 };
 
