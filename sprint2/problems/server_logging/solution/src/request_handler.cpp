@@ -2,6 +2,8 @@
 
 namespace model {
 
+namespace json = boost::json;
+
 void tag_invoke(json::value_from_tag, json::value& jv, const Building& building) {
     auto bounds = building.GetBounds();
     jv = {
@@ -76,18 +78,14 @@ Uri::Uri(std::string_view uri, const fs::path& base)
     , canonical_uri_(fs::weakly_canonical(uri_)) {
 }
 
-const fs::path& Uri::GetRawUri() const {
-    return uri_;
-}
-
 const fs::path& Uri::GetCanonicalUri() const {
     return canonical_uri_;
 }
 
-std::optional<Extention> Uri::GetFileExtention() const {
+Extention Uri::GetFileExtention() const {
     auto extention = canonical_uri_.extension().string();
     if (extention.empty()) {
-        return std::nullopt;
+        return Extention::empty;
     }
 
     for (int i = 0; i < extention.length(); ++i) {
@@ -96,11 +94,27 @@ std::optional<Extention> Uri::GetFileExtention() const {
         }
     }
 
-    if (!extention_map_.contains(extention)) {
-        return std::nullopt;
-    }
+    if (extention == ".htm") return Extention::htm;
+    if (extention == ".html") return Extention::html;
+    if (extention == ".css") return Extention::css;
+    if (extention == ".txt") return Extention::txt;
+    if (extention == ".js") return Extention::js;
+    if (extention == ".json") return Extention::json;
+    if (extention == ".xml") return Extention::xml;
+    if (extention == ".png") return Extention::png;
+    if (extention == ".jpg") return Extention::jpg;
+    if (extention == ".jpe") return Extention::jpe;
+    if (extention == ".jpeg") return Extention::jpeg;
+    if (extention == ".gif") return Extention::gif;
+    if (extention == ".bmp") return Extention::bmp;
+    if (extention == ".ico") return Extention::ico;
+    if (extention == ".tiff") return Extention::tiff;
+    if (extention == ".tif") return Extention::tif;
+    if (extention == ".svg") return Extention::svg;
+    if (extention == ".svgz") return Extention::svgz;
+    if (extention == ".mp3") return Extention::mp3;
 
-    return extention_map_.at(extention);
+    return Extention::unkown;
 }
 
 bool Uri::IsSubPath(const fs::path& base) const {
@@ -135,10 +149,37 @@ std::string Uri::EncodeUri(std::string_view uri) const {
     return encoded_uri;
 }
 
-void RequestHandler::ProcessApiTarget(http::response<http::string_body>& response,
-                                      std::string_view target) const {
-    if (target.substr(0, 12) != "/api/v1/maps"sv) {
-        MakeErrorApiResponse(response, http::status::bad_request);
+std::string_view GetMimeType(Extention extention) {
+    if (extention == Extention::htm
+        || extention == Extention::html) return ContentType::TXT_HTML;
+    if (extention == Extention::css) return ContentType::TXT_CSS;
+    if (extention == Extention::txt) return ContentType::TXT_PLAIN;
+    if (extention == Extention::js) return ContentType::TXT_JS;
+    if (extention == Extention::json) return ContentType::APP_JSON;
+    if (extention == Extention::xml) return ContentType::APP_XML;
+    if (extention == Extention::png) return ContentType::IMG_PNG;
+    if (extention == Extention::jpg
+        || extention == Extention::jpe
+        || extention == Extention::jpeg) return ContentType::IMG_JPEG;
+    if (extention == Extention::gif) return ContentType::IMG_GIF;
+    if (extention == Extention::bmp) return ContentType::IMG_BMP;
+    if (extention == Extention::tiff
+        || extention == Extention::tif) return ContentType::IMG_TIFF;
+    if (extention == Extention::svg
+        || extention == Extention::svgz) return ContentType::IMG_SVG_XML;
+    if (extention == Extention::mp3) return ContentType::AUDIO_MPEG;
+
+    return ContentType::APP_BINARY;
+}
+
+std::string ParseMapToJson(const model::Map* map) {
+    return json::serialize(json::value_from(*map));
+}
+
+void ApiRequestHandler::ProcessApiMaps(StringResponse& response,
+                                       std::string_view target) const {
+    if (target.size() > 12 && target[12] != '/') {
+        MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::bad_request, "Bad request");
         return;
     }
 
@@ -148,7 +189,7 @@ void RequestHandler::ProcessApiTarget(http::response<http::string_body>& respons
 
         const model::Map* map = game_.FindMap(model::Map::Id(map_name));
         if (map == nullptr) {
-            MakeErrorApiResponse(response, http::status::not_found);
+            MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::map_not_found, "Map not found");
             return;
         }
 
@@ -169,7 +210,114 @@ void RequestHandler::ProcessApiTarget(http::response<http::string_body>& respons
     response.result(http::status::ok);
 }
 
-http::status RequestHandler::ProcessStaticFileTarget(http::response<http::file_body>& response,
+
+
+void ApiRequestHandler::MakeErrorApiResponse(StringResponse& response, ApiRequestHandler::ErrorCode code,
+                                             std::string_view message) const {
+    using ec = ApiRequestHandler::ErrorCode;
+    response.set(http::field::content_type, ContentType::APP_JSON);
+
+    switch (code) {
+        case ec::map_not_found:
+        {
+            response.result(http::status::not_found);
+            json::value jv = {
+                {"code", "mapNotFound"},
+                {"message", message}
+            };
+            response.body() = json::serialize(jv);
+            break;
+        }
+
+        case ec::invalid_method_players:
+            response.set(http::field::cache_control, "no-cache");
+            [[fallthrough]];
+            
+        case ec::invalid_method_common:
+        {
+            response.result(http::status::method_not_allowed);
+            json::value jv = {
+                {"code", "invalidMethod"},
+                {"message", message}
+            };
+            response.body() = json::serialize(jv);
+            response.set(http::field::allow, "GET, HEAD");
+            break;
+        }
+
+        case ec::invalid_method_join:
+        {
+            response.result(http::status::method_not_allowed);
+            json::value jv = {
+                {"code", "invalidMethod"},
+                {"message", message}
+            };
+            response.body() = json::serialize(jv);
+            response.set(http::field::cache_control, "no-cache");
+            response.set(http::field::allow, "POST");
+            break;
+        }
+
+        case ec::bad_request:
+        {
+            response.result(http::status::bad_request);
+            json::value jv = {
+                {"code", "badRequest"},
+                {"message", message}
+            };
+            response.body() = json::serialize(jv);
+            break;
+        }
+
+        case ec::invalid_token:
+        {
+            response.result(http::status::unauthorized);
+            json::value jv = {
+                {"code", "invalidToken"},
+                {"message", message}
+            };
+            response.body() = json::serialize(jv);
+            break;
+        }
+
+        case ec::invalid_argument:
+        {
+            response.result(http::status::bad_request);
+            json::value jv = {
+                {"code", "invalidArgument"},
+                {"message", message}
+            };
+            response.body() = json::serialize(jv);
+            break;
+        }
+
+        case ec::unknown_token:
+        {
+            response.result(http::status::unauthorized);
+            json::value jv = {
+                {"code", "unknownToken"},
+                {"message", message}
+            };
+            response.body() = json::serialize(jv);
+            break;
+        }
+
+        case ec::unknown:
+        default:
+        {
+            response.result(http::status::unknown);
+            json::value jv = {
+                {"code", "unknownRequest"},
+                {"message", "Unknown request"}
+            };
+            response.body() = json::serialize(jv);
+            break;
+        }
+    }
+    response.content_length(response.body().size());
+}
+
+http::status StaticRequestHandler::ProcessStaticFileTarget(FileResponse& response,
                                                      std::string_view target) const {
     Uri uri(target, static_files_path_);
     if (!uri.IsSubPath(static_files_path_)) {
@@ -182,14 +330,7 @@ http::status RequestHandler::ProcessStaticFileTarget(http::response<http::file_b
         return http::status::not_found;
     }
 
-    auto file_extention = uri.GetFileExtention();
-
-    if (!file_extention.has_value()) {
-        response.set(http::field::content_type, ContentType::APP_BINARY);
-    } else {
-        response.set(http::field::content_type, content_type_map_.at(*file_extention));
-    }
-
+    response.set(http::field::content_type, GetMimeType(uri.GetFileExtention()));
     response.body() = std::move(file);
     response.prepare_payload();
     response.result(http::status::ok);
@@ -197,47 +338,8 @@ http::status RequestHandler::ProcessStaticFileTarget(http::response<http::file_b
     return http::status::ok;
 }
 
-void RequestHandler::MakeErrorApiResponse(http::response<http::string_body>& response,
-                                          http::status status) const {
-    response.result(status);
-    response.set(http::field::content_type, ContentType::APP_JSON);
-    switch (status) {
-        case http::status::not_found:
-        {
-            json::value jv = {
-                {"code", "mapNotFound"},
-                {"message", "Map not found"}
-            };
-            response.body() = json::serialize(jv);
-            break;
-        }
-
-        case http::status::method_not_allowed:
-        {
-            json::value jv = {
-                {"code", "InvalidMethod"},
-                {"message", "Invalid method"}
-            };
-            response.body() = json::serialize(jv);
-            response.set(http::field::allow, "GET, HEAD"sv);
-            break;
-        }
-
-        default:
-        {
-            json::value jv = {
-                {"code", "badRequest"},
-                {"message", "Bad request"}
-            };
-            response.body() = json::serialize(jv);
-            break;
-        }
-    }
-    response.content_length(response.body().size());
-}
-
-http::response<http::string_body> RequestHandler::MakeErrorStaticFileResponse(http::status status) const {
-    http::response<http::string_body> response;
+StringResponse StaticRequestHandler::MakeErrorStaticFileResponse(http::status status) const {
+    StringResponse response;
     response.result(status);
     response.set(http::field::content_type, ContentType::TXT_PLAIN);
 
@@ -263,11 +365,6 @@ http::response<http::string_body> RequestHandler::MakeErrorStaticFileResponse(ht
 
     response.content_length(response.body().size());
     return response;
-}
-
-std::string RequestHandler::ParseMapToJson(const model::Map* map) const {
-
-    return json::serialize(json::value_from(*map));
 }
 
 }  // namespace http_handler

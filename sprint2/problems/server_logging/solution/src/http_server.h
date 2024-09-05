@@ -1,7 +1,7 @@
 #pragma once
 #include "sdk.h"
 #include "logger.h"
-//
+
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
