@@ -31,6 +31,8 @@ add_executable(game_server
 	src/request_handler.h
 	src/logger.cpp
 	src/logger.h
+    src/player.h
+    src/player.cpp
 )
 
 target_link_libraries(game_server PRIVATE Threads::Threads CONAN_PKG::boost)
