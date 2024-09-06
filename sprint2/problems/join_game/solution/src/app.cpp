@@ -56,7 +56,7 @@ JoinGameResult JoinGameUseCase::JoinGame(const std::string& user_name, const std
     const model::Map* map = game_->FindMap(model::Map::Id{map_id});
 
     if (!map) {
-        throw JoinGameError{JoinGameErrorReason::invalidName};
+        throw JoinGameError{JoinGameErrorReason::invalidMap};
     }
 
     model::GameSession* session = game_->GetGameSession(model::Map::Id{map_id});
