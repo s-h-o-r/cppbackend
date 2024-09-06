@@ -4,6 +4,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/strand.hpp>
 
+#include "app.h"
 #include "http_server.h"
 #include "model.h"
 #include "player.h"
@@ -87,7 +88,7 @@ public:
     using Strand = net::strand<net::io_context::executor_type>;
 
     explicit ApiRequestHandler(model::Game& game, net::io_context& ioc)
-    : game_(game)
+    : app_(ioc, &game)
     , ioc_(ioc)
     , strand_{net::make_strand(ioc_)} {
     }
@@ -104,13 +105,9 @@ public:
     }
 
 private:
-    model::Game& game_;
+    app::Application app_;
     net::io_context& ioc_;
     Strand strand_;
-
-    user::Players players_;
-    user::PlayerTokens tokens_;
-
 
     template <typename Request, typename Send>
     void SendApiResponse(Request& req, Send&& send, std::string_view target) {
@@ -191,19 +188,21 @@ private:
             return;
         }
 
-        const user::Player* player = tokens_.FindPlayerByToken(user::Token{std::string(token)});
-        if (player == nullptr) {
-            MakeErrorApiResponse(response, ErrorCode::unknown_token, "Player token has not been found"sv);
-            return;
-        }
-        
-        const auto& dogs = player->GetGameSession()->GetDogs();
-        json::object players_on_map_json;
-        for (const auto& [id, dog] : dogs) {
-            players_on_map_json[std::to_string(*id)] = {{"name", dog->GetName()}};
-        }
+        try {
+            const auto& players = app_.ListPlayers(token);
+            json::object players_on_map_json;
+            for (const auto& [id, player] : players) {
+                players_on_map_json[std::to_string(*id)] = {{"name", player->GetName()}};
+            }
 
-        response.body() = json::serialize(json::value(std::move(players_on_map_json)));
+            response.body() = json::serialize(json::value(std::move(players_on_map_json)));
+        } catch (const app::ListPlayersError& error) {
+            switch (error.reason) {
+                case app::ListPlayersErrorReason::unknownToken:
+                    MakeErrorApiResponse(response, ErrorCode::unknown_token, error.what());
+                    return;
+            }
+        }
 
         response.set(http::field::content_type, ContentType::APP_JSON);
         response.content_length(response.body().size());
@@ -223,34 +222,29 @@ private:
             return;
         }
 
-        std::string user_name = std::string(request_body.as_object().at("userName").as_string());
-        std::string map_id = std::string(request_body.as_object().at("mapId").as_string());
+        try {
+            std::string user_name = std::string(request_body.as_object().at("userName").as_string());
+            std::string map_id = std::string(request_body.as_object().at("mapId").as_string());
+            
+            auto join_result = app_.JoinGame(user_name, map_id);
 
-        if (user_name.empty()) {
-            MakeErrorApiResponse(response, ErrorCode::invalid_argument, "Invalid name"sv);
-            return;
+            json::value jv = {
+                {"authToken", *join_result.token},
+                {"playerId", *join_result.player_id}
+            };
+
+            response.body() = json::serialize(jv);
+
+        } catch (const app::JoinGameError& error) {
+            switch (error.reason) {
+                case app::JoinGameErrorReason::invalidMap:
+                    MakeErrorApiResponse(response, ErrorCode::map_not_found, error.what());
+                    return;
+                case app::JoinGameErrorReason::invalidName:
+                    MakeErrorApiResponse(response, ErrorCode::invalid_argument, error.what());
+                    return;
+            }
         }
-
-        if (!game_.FindMap(model::Map::Id{map_id})) {
-            MakeErrorApiResponse(response, ErrorCode::map_not_found, "Map not found"sv);
-            return;
-        }
-
-        model::GameSession* session = game_.GetGameSession(model::Map::Id{map_id});
-        if (session == nullptr) {
-            session = &game_.StartGameSession(ioc_, game_.FindMap(model::Map::Id{map_id}));
-        }
-
-        model::Dog* dog = session->AddDog(user_name);
-
-        user::Token player_token = tokens_.AddPlayer(&players_.Add(dog, session));
-
-        json::value jv = {
-            {"authToken", *player_token},
-            {"playerId", *dog->GetId()}
-        };
-
-        response.body() = json::serialize(jv);
 
         response.set(http::field::content_type, ContentType::APP_JSON);
         response.content_length(response.body().size());
