@@ -106,12 +106,12 @@ DogPoint Map::GetRandomDogPoint() const {
     const Road& rand_road = roads_.at(int_dist(generator));
 
     if (rand_road.IsHorizontal()) {
-        std::uniform_real_distribution double_dist(std::min(rand_road.GetStart().x, rand_road.GetEnd().x),
-                                                   std::max(rand_road.GetStart().x, rand_road.GetEnd().x));
+        std::uniform_real_distribution double_dist(std::min(rand_road.GetStart().x, rand_road.GetEnd().x) + 0.0,
+                                                   std::max(rand_road.GetStart().x, rand_road.GetEnd().x) + 0.0);
         return {static_cast<DogCoord>(double_dist(generator)), static_cast<DogCoord>(rand_road.GetStart().y)};
     } else {
-        std::uniform_real_distribution double_dist(std::min(rand_road.GetStart().y, rand_road.GetEnd().y),
-                                                   std::max(rand_road.GetStart().y, rand_road.GetEnd().y));
+        std::uniform_real_distribution double_dist(std::min(rand_road.GetStart().y, rand_road.GetEnd().y) + 0.0,
+                                                   std::max(rand_road.GetStart().y, rand_road.GetEnd().y) + 0.0);
         return {static_cast<DogCoord>(rand_road.GetStart().x), static_cast<DogCoord>(double_dist(generator))};
     }
 }
