@@ -177,45 +177,21 @@ private:
 
     template <typename Request>
     void ProcessApiPlayers(Request& request, StringResponse& response) const {
-        using namespace std::literals;
-
         response.set(http::field::cache_control, "no-cache");
 
-        std::string_view token;
-
-        try {
-             token = GetRawTokenValue(request);
-        } catch (const ErrorCode ec) {
-            switch (ec) {
-                case ErrorCode::invalid_token:
-                    MakeErrorApiResponse(response, ErrorCode::invalid_token, "Authorization header is missing"sv);
-                    break;
-                default:
-                    MakeErrorApiResponse(response, ErrorCode::unknown, "Unknown error code while getting raw token"sv);
-                    break;
-            }
-            return;
-        }
-
-        try {
-            const auto& players = app_.ListPlayers(token);
+        ExecuteAuthorized(request, response, [self = shared_from_this(), &response](std::string_view token) {
+            const auto& players = self->app_.ListPlayers(token);
             json::object players_on_map_json;
             for (const auto& [id, player] : players) {
                 players_on_map_json[std::to_string(*id)] = {{"name", player->GetName()}};
             }
 
             response.body() = json::serialize(json::value(std::move(players_on_map_json)));
-        } catch (const app::ListPlayersError& error) {
-            switch (error.reason) {
-                case app::ListPlayersErrorReason::unknownToken:
-                    MakeErrorApiResponse(response, ErrorCode::unknown_token, error.what());
-                    return;
-            }
-        }
 
-        response.set(http::field::content_type, ContentType::APP_JSON);
-        response.content_length(response.body().size());
-        response.result(http::status::ok);
+            response.set(http::field::content_type, ContentType::APP_JSON);
+            response.content_length(response.body().size());
+            response.result(http::status::ok);
+        });
     }
 
     template <typename Request>
@@ -262,28 +238,10 @@ private:
 
     template <typename Request>
     void ProcessApiGameState(Request& request, StringResponse& response) {
-        using namespace std::literals;
-
         response.set(http::field::cache_control, "no-cache");
 
-        std::string_view token;
-
-        try {
-             token = GetRawTokenValue(request);
-        } catch (const ErrorCode ec) {
-            switch (ec) {
-                case ErrorCode::invalid_token:
-                    MakeErrorApiResponse(response, ErrorCode::invalid_token, "Authorization header is required"sv);
-                    break;
-                default:
-                    MakeErrorApiResponse(response, ErrorCode::unknown, "Unknown error code while getting raw token"sv);
-                    break;
-            }
-            return;
-        }
-
-        try {
-            const auto& players = app_.ListPlayers(token);
+        ExecuteAuthorized(request, response, [self = shared_from_this(), &response](std::string_view token) {
+            const auto& players = self->app_.ListPlayers(token);
             json::object players_on_map_json;
             players_on_map_json["players"].emplace_object();
             for (const auto& [id, player] : players) {
@@ -298,17 +256,11 @@ private:
             }
 
             response.body() = json::serialize(json::value(std::move(players_on_map_json)));
-        } catch (const app::ListPlayersError& error) {
-            switch (error.reason) {
-                case app::ListPlayersErrorReason::unknownToken:
-                    MakeErrorApiResponse(response, ErrorCode::unknown_token, error.what());
-                    return;
-            }
-        }
 
-        response.set(http::field::content_type, ContentType::APP_JSON);
-        response.content_length(response.body().size());
-        response.result(http::status::ok);
+            response.set(http::field::content_type, ContentType::APP_JSON);
+            response.content_length(response.body().size());
+            response.result(http::status::ok);
+        });
     }
 
     enum class ErrorCode {
@@ -318,6 +270,29 @@ private:
         invalid_method_players
     };
 
+    template <typename Request, typename Executor>
+    void ExecuteAuthorized(Request& request, StringResponse& response, Executor&& executor) const {
+        using namespace std::literals;
+
+        try {
+            std::string_view token = GetRawTokenValue(request);
+            if (!app_.IsTokenValid(token)) {
+                MakeErrorApiResponse(response, ErrorCode::unknown_token, "Player token has not been found"sv);
+                return;
+            }
+            executor(token);
+        } catch (const ErrorCode ec) {
+            switch (ec) {
+                case ErrorCode::invalid_token:
+                    MakeErrorApiResponse(response, ErrorCode::invalid_token, "Authorization header is required"sv);
+                    break;
+                default:
+                    MakeErrorApiResponse(response, ErrorCode::unknown, "Unknown error code while getting raw token"sv);
+                    break;
+            }
+            return;
+        }
+    }
 
     template <typename Request>
     std::string_view GetRawTokenValue(Request& request) const {

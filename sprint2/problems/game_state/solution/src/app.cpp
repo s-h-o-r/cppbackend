@@ -89,4 +89,11 @@ JoinGameResult Application::JoinGame(const std::string& user_name, const std::st
     return join_game_use_case_.JoinGame(user_name, map_id);
 }
 
+bool Application::IsTokenValid(std::string_view token) const {
+    if (tokens_.FindPlayerByToken(user::Token{std::string(token)}) == nullptr) {
+        return false;
+    }
+    return true;
+}
+
 } // namespace app

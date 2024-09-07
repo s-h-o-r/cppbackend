@@ -131,6 +131,7 @@ public:
     const model::GameSession::IdToDogIndex& ListPlayers(std::string_view token) const;
     JoinGameResult JoinGame(const std::string& user_name, const std::string& map_id);
 
+    bool IsTokenValid(std::string_view token) const;
 private:
     net::io_context& ioc_;
     model::Game* game_;
