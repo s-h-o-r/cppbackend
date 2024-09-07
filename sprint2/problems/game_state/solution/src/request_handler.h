@@ -285,15 +285,16 @@ private:
         try {
             const auto& players = app_.ListPlayers(token);
             json::object players_on_map_json;
+            players_on_map_json["players"].emplace_object();
             for (const auto& [id, player] : players) {
                 const model::DogPoint& pos = player->GetPosition();
                 const model::Speed& speed = player->GetSpeed();
 
-                players_on_map_json[std::to_string(*id)] = {
+                players_on_map_json["players"].as_object().insert_or_assign(std::to_string(*id), json::object{
                     {"pos", {pos.x, pos.y}},
                     {"speed", {speed.s_x, speed.s_y}},
                     {"dir", player->GetDirection()}
-                };
+                });
             }
 
             response.body() = json::serialize(json::value(std::move(players_on_map_json)));
