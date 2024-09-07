@@ -149,16 +149,16 @@ void Dog::SetDirection(Direction new_dir) {
     dir_ = new_dir;
 }
 
-char Dog::GetDirection() const {
+std::string Dog::GetDirection() const {
     switch (dir_) {
         case Direction::NORTH:
-            return 'U';
+            return "U"s;
         case Direction::SOUTH:
-            return 'D';
+            return "D"s;
         case Direction::EAST:
-            return 'R';
+            return "R"s;
         case Direction::WEST:
-            return 'L';
+            return "L"s;
     }
     throw std::runtime_error("Unknown direction status in Dog class"s);
 }

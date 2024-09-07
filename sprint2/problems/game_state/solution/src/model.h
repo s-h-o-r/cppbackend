@@ -192,7 +192,7 @@ public:
     void SetSpeed(Speed new_speed);
     const Speed& GetSpeed() const;
     void SetDirection(Direction new_dir);
-    char GetDirection() const;
+    std::string GetDirection() const;
 
 private:
     Id id_;
