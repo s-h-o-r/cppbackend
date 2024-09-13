@@ -341,13 +341,13 @@ private:
 
         json::value request_body = json::parse(request.body(), ec);
         if (ec || !(request_body.if_object() && request_body.as_object().count("timeDelta"))
-               || !request_body.as_object().at("timeDelta").is_number()) {
+               || !request_body.as_object().at("timeDelta").is_int64()) {
             MakeErrorApiResponse(response, ErrorCode::invalid_argument,
                                        "Failed to parse tick request JSON"sv);
             return;
         }
 
-        app_.ProcessTick(request_body.as_object().at("timeDelta").as_uint64());
+        app_.ProcessTick(request_body.as_object().at("timeDelta").as_int64());
 
         response.body() = "{}"sv;
 
