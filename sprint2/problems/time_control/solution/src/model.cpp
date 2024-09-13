@@ -264,7 +264,10 @@ Dog* GameSession::AddDog(std::string_view name) {
     detail::ThreadChecker checker(counter_);
 
     Speed default_speed = {0, 0};
-    model::DogPoint dog_pos = map_->GetRandomDogPoint();
+
+    Point start_point = map_->GetRoads().front().GetStart();
+    model::DogPoint dog_pos = {static_cast<DogCoord>(start_point.x),
+                                static_cast<DogCoord>(start_point.y)}; // map_->GetRandomDogPoint();
 
     auto dog = std::make_shared<Dog>(std::string(name), dog_pos, default_speed);
     auto dog_id = dog->GetId();
