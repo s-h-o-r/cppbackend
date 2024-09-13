@@ -299,20 +299,28 @@ void GameSession::UpdateState(std::uint64_t tick) {
         if (new_vertical_road_with_dog != vertical_road_with_dog
             || new_horizontal_road_with_dog != horizontal_road_with_dog) {
             
-            Point cur_dog_pos_on_map = cur_dog_pos.ConvertToMapPoint();
+            Coord cur_dog_pos_on_map = cur_dog_pos.ConvertToMapPoint();
 
             switch (dog->GetDirection()) {
                 case Direction::NORTH:
-                    new_dog_pos = {new_dog_pos.x, cur_dog_pos_on_map.y - 0.4};
+                    Coord edge_road_coord = std::min(vertical_road_with_dog->GetStart().y,
+                                                     vertical_road_with_dog->GetEnd().y);
+                    new_dog_pos = {new_dog_pos.x, edge_road_coord - 0.4};
                     break;
                 case Direction::SOUTH:
-                    new_dog_pos = {new_dog_pos.x, cur_dog_pos_on_map.y + 0.4};
+                    Coord edge_road_coord = std::max(vertical_road_with_dog->GetStart().y,
+                                                     vertical_road_with_dog->GetEnd().y);
+                    new_dog_pos = {new_dog_pos.x, edge_road_coord + 0.4};
                     break;
                 case Direction::WEST:
-                    new_dog_pos = {cur_dog_pos_on_map.x - 0.4, new_dog_pos.y};
+                    Coord edge_road_coord = std::min(horizontal_road_with_dog->GetStart().x,
+                                                     horizontal_road_with_dog->GetEnd().x);
+                    new_dog_pos = {edge_road_coord.x - 0.4, new_dog_pos.y};
                     break;
                 case Direction::EAST:
-                    new_dog_pos = {cur_dog_pos_on_map.x + 0.4, new_dog_pos.y};
+                    Coord edge_road_coord = std::max(horizontal_road_with_dog->GetStart().x,
+                                                     horizontal_road_with_dog->GetEnd().x);
+                    new_dog_pos = {edge_road_coord.x + 0.4, new_dog_pos.y};
                     break;
 
                 default:
