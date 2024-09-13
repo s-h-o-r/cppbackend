@@ -298,31 +298,32 @@ void GameSession::UpdateState(std::uint64_t tick) {
 
         if (new_vertical_road_with_dog != vertical_road_with_dog
             || new_horizontal_road_with_dog != horizontal_road_with_dog) {
-            
-            Coord cur_dog_pos_on_map = cur_dog_pos.ConvertToMapPoint();
 
             switch (dog->GetDirection()) {
-                case Direction::NORTH:
+                case Direction::NORTH: {
                     Coord edge_road_coord = std::min(vertical_road_with_dog->GetStart().y,
                                                      vertical_road_with_dog->GetEnd().y);
                     new_dog_pos = {new_dog_pos.x, edge_road_coord - 0.4};
                     break;
-                case Direction::SOUTH:
+                }
+                case Direction::SOUTH: {
                     Coord edge_road_coord = std::max(vertical_road_with_dog->GetStart().y,
                                                      vertical_road_with_dog->GetEnd().y);
                     new_dog_pos = {new_dog_pos.x, edge_road_coord + 0.4};
                     break;
-                case Direction::WEST:
+                }
+                case Direction::WEST: {
                     Coord edge_road_coord = std::min(horizontal_road_with_dog->GetStart().x,
                                                      horizontal_road_with_dog->GetEnd().x);
-                    new_dog_pos = {edge_road_coord.x - 0.4, new_dog_pos.y};
+                    new_dog_pos = {edge_road_coord - 0.4, new_dog_pos.y};
                     break;
-                case Direction::EAST:
+                }
+                case Direction::EAST: {
                     Coord edge_road_coord = std::max(horizontal_road_with_dog->GetStart().x,
                                                      horizontal_road_with_dog->GetEnd().x);
-                    new_dog_pos = {edge_road_coord.x + 0.4, new_dog_pos.y};
+                    new_dog_pos = {edge_road_coord + 0.4, new_dog_pos.y};
                     break;
-
+                }
                 default:
                     throw std::runtime_error("unknown direction for dog");
             }
