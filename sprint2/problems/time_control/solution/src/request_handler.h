@@ -207,7 +207,6 @@ private:
 
     template <typename Request>
     void ProcessApiPlayers(Request& request, StringResponse& response) const {
-        response.set(http::field::cache_control, "no-cache");
 
         ExecuteAuthorized(request, response, [self = shared_from_this(), &response](std::string_view token) {
             const auto& players = self->app_.ListPlayers(token);
@@ -227,8 +226,6 @@ private:
     template <typename Request>
     void ProcessApiJoin(Request& request, StringResponse& response) {
         using namespace std::literals;
-
-        response.set(http::field::cache_control, "no-cache");
 
         boost::system::error_code ec;
         json::value request_body = json::parse(request.body(), ec);
@@ -269,7 +266,6 @@ private:
 
     template <typename Request>
     void ProcessApiGameState(Request& request, StringResponse& response) {
-        response.set(http::field::cache_control, "no-cache");
 
         ExecuteAuthorized(request, response, [self = shared_from_this(), &response](std::string_view token) {
             const auto& players = self->app_.ListPlayers(token);
@@ -297,8 +293,6 @@ private:
     template <typename Request>
     void ProcessApiAction(Request& request, StringResponse& response) {
         using namespace std::literals;
-
-        response.set(http::field::cache_control, "no-cache");
 
         ExecuteAuthorized(request, response,
                           [self = shared_from_this(), &request, &response] (std::string_view token) {
@@ -329,8 +323,6 @@ private:
     template <typename Request>
     void ProcessApiTick(Request& request, StringResponse& response) {
         using namespace std::literals;
-
-        response.set(http::field::cache_control, "no-cache");
 
         if (!request.count(http::field::content_type)) {
             MakeErrorApiResponse(response, ErrorCode::invalid_argument,
