@@ -303,8 +303,12 @@ void GameSession::UpdateState(std::uint64_t tick) {
         const Road* new_vertical_road_with_dog = map_->GetVerticalRoad(new_dog_pos);
         const Road* new_horizontal_road_with_dog = map_->GetHorizontalRoad(new_dog_pos);
 
-        if (!(vertical_road_with_dog != nullptr && vertical_road_with_dog == new_vertical_road_with_dog)
-               || !(horizontal_road_with_dog != nullptr && horizontal_road_with_dog == new_horizontal_road_with_dog)) {
+        if (vertical_road_with_dog == nullptr && horizontal_road_with_dog == nullptr) {
+            throw std::runtime_error("imposible dog position");
+        }
+
+        if ((vertical_road_with_dog != new_vertical_road_with_dog && vertical_road_with_dog != nullptr)
+               || (horizontal_road_with_dog != new_horizontal_road_with_dog && horizontal_road_with_dog != nullptr)) {
 
             switch (dog->GetDirection()) {
                 case Direction::NORTH: {
