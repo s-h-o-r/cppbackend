@@ -112,6 +112,7 @@ private:
         using namespace std::literals;
 
         StringResponse response;
+        response.set(http::field::cache_control, "no-cache");
         try {
             FillBasicInfo(req, response);
             
