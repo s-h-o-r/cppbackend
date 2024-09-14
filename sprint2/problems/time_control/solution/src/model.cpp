@@ -168,8 +168,8 @@ const Road* Map::GetVerticalRoad(DogPoint dog_point) const {
         && vertical_road_index_.contains(map_point.x)) {
         for (const Road* road : vertical_road_index_.at(map_point.x)) {
             if ((road->GetStart().y == map_point.y || road->GetEnd().y == map_point.y)
-                && difference_y < Road::WIDTH_ROAD_COEF_MINUS
-                && difference_y > Road::WIDTH_ROAD_COEF_PLUS) {
+                && (difference_y < Road::WIDTH_ROAD_COEF_MINUS
+                || difference_y > Road::WIDTH_ROAD_COEF_PLUS)) {
                 continue;
             }
 
@@ -192,8 +192,8 @@ const Road* Map::GetHorizontalRoad(DogPoint dog_point) const {
         && horizontal_road_index_.contains(map_point.y)) {
         for (const Road* road : horizontal_road_index_.at(map_point.y)) {
             if ((road->GetStart().x == map_point.x || road->GetEnd().x == map_point.x)
-                && difference_x < Road::WIDTH_ROAD_COEF_MINUS
-                && difference_x > Road::WIDTH_ROAD_COEF_PLUS) {
+                && (difference_x < Road::WIDTH_ROAD_COEF_MINUS
+                || difference_x > Road::WIDTH_ROAD_COEF_PLUS)) {
                 continue;
             }
 
