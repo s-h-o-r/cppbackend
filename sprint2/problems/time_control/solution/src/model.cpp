@@ -167,10 +167,12 @@ const Road* Map::GetVerticalRoad(DogPoint dog_point) const {
         && difference_x < Road::WIDTH_ROAD_COEF_PLUS
         && vertical_road_index_.contains(map_point.x)) {
         for (const Road* road : vertical_road_index_.at(map_point.x)) {
-            if ((road->GetStart().y == map_point.y || road->GetEnd().y == map_point.y)
-                && (difference_y < Road::WIDTH_ROAD_COEF_MINUS
-                || difference_y > Road::WIDTH_ROAD_COEF_PLUS)) {
-                continue;
+            if (road->GetStart().y == map_point.y || road->GetEnd().y == map_point.y) {
+                double min_dog_coord = std::min(road->GetStart().y, road->GetEnd().y) - 0.4;
+                double max_dog_coord = std::max(road->GetStart().y, road->GetEnd().y) + 0.4;
+                if (dog_point.y < min_dog_coord || max_dog_coord < dog_point.y) {
+                    continue;
+                }
             }
 
             if (road->IsPointOnRoad(map_point)) {
@@ -191,10 +193,12 @@ const Road* Map::GetHorizontalRoad(DogPoint dog_point) const {
         && difference_y < Road::WIDTH_ROAD_COEF_PLUS
         && horizontal_road_index_.contains(map_point.y)) {
         for (const Road* road : horizontal_road_index_.at(map_point.y)) {
-            if ((road->GetStart().x == map_point.x || road->GetEnd().x == map_point.x)
-                && (difference_x < Road::WIDTH_ROAD_COEF_MINUS
-                || difference_x > Road::WIDTH_ROAD_COEF_PLUS)) {
-                continue;
+            if (road->GetStart().x == map_point.x || road->GetEnd().x == map_point.x) {
+                double min_dog_coord = std::min(road->GetStart().x, road->GetEnd().x) - 0.4;
+                double max_dog_coord = std::max(road->GetStart().x, road->GetEnd().x) + 0.4;
+                if (dog_point.x < min_dog_coord || max_dog_coord < dog_point.x) {
+                    continue;
+                }
             }
 
             if (road->IsPointOnRoad(map_point)) {
