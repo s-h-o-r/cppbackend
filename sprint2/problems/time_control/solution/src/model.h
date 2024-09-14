@@ -3,6 +3,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/strand.hpp>
 #include <cmath>
+#include <deque>
 #include <map>
 #include <memory>
 #include <numeric>
@@ -149,7 +150,7 @@ private:
 class Map {
 public:
     using Id = util::Tagged<std::string, Map>;
-    using Roads = std::vector<Road>;
+    using Roads = std::deque<Road>;
     using Buildings = std::vector<Building>;
     using Offices = std::vector<Office>;
 

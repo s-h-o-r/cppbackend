@@ -106,7 +106,7 @@ void Map::SetDogSpeed(Velocity speed) {
 
 void Map::AddRoad(Road&& road) {
     roads_.emplace_back(std::move(road));
-    auto& new_road = roads_.back();
+    Road& new_road = roads_.back();
     if (new_road.IsVertical()) {
         vertical_road_index_[new_road.GetStart().x].push_back(&new_road);
     } else {
@@ -168,8 +168,8 @@ const Road* Map::GetVerticalRoad(DogPoint dog_point) const {
         && vertical_road_index_.contains(map_point.x)) {
         for (const Road* road : vertical_road_index_.at(map_point.x)) {
             if ((road->GetStart().y == map_point.y || road->GetEnd().y == map_point.y)
-                && difference_y > Road::WIDTH_ROAD_COEF_MINUS
-                && difference_y < Road::WIDTH_ROAD_COEF_PLUS) {
+                && difference_y < Road::WIDTH_ROAD_COEF_MINUS
+                && difference_y > Road::WIDTH_ROAD_COEF_PLUS) {
                 continue;
             }
 
@@ -189,11 +189,11 @@ const Road* Map::GetHorizontalRoad(DogPoint dog_point) const {
 
     if (difference_y > Road::WIDTH_ROAD_COEF_MINUS
         && difference_y < Road::WIDTH_ROAD_COEF_PLUS
-        && vertical_road_index_.contains(map_point.y)) {
+        && horizontal_road_index_.contains(map_point.y)) {
         for (const Road* road : horizontal_road_index_.at(map_point.y)) {
             if ((road->GetStart().x == map_point.x || road->GetEnd().x == map_point.x)
-                && difference_x > Road::WIDTH_ROAD_COEF_MINUS
-                && difference_x < Road::WIDTH_ROAD_COEF_PLUS) {
+                && difference_x < Road::WIDTH_ROAD_COEF_MINUS
+                && difference_x > Road::WIDTH_ROAD_COEF_PLUS) {
                 continue;
             }
 
@@ -299,8 +299,8 @@ void GameSession::UpdateState(std::uint64_t tick) {
         const Road* new_vertical_road_with_dog = map_->GetVerticalRoad(new_dog_pos);
         const Road* new_horizontal_road_with_dog = map_->GetHorizontalRoad(new_dog_pos);
 
-        if ((vertical_road_with_dog != nullptr && new_vertical_road_with_dog != vertical_road_with_dog)
-            && (horizontal_road_with_dog != nullptr && new_horizontal_road_with_dog != horizontal_road_with_dog)) {
+        if (!((vertical_road_with_dog != nullptr && vertical_road_with_dog == new_vertical_road_with_dog)
+               || (horizontal_road_with_dog != nullptr && horizontal_road_with_dog == new_horizontal_road_with_dog))) {
 
             switch (dog->GetDirection()) {
                 case Direction::NORTH: {
