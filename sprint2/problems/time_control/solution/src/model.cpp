@@ -291,13 +291,13 @@ void GameSession::UpdateState(std::uint64_t tick) {
         const Road* new_vertical_road_with_dog = map_->GetVerticalRoad(new_dog_pos);
         const Road* new_horizontal_road_with_dog = map_->GetHorizontalRoad(new_dog_pos);
 
-
-
-        if (!((vertical_road_with_dog == new_vertical_road_with_dog && !vertical_road_with_dog)
-              || (horizontal_road_with_dog == new_horizontal_road_with_dog && !horizontal_road_with_dog))
-            && vertical_road_with_dog == nullptr && horizontal_road_with_dog == nullptr) {
+        if (vertical_road_with_dog == new_vertical_road_with_dog && vertical_road_with_dog != nullptr ||
+           horizontal_road_with_dog == new_horizontal_road_with_dog && horizontal_road_with_dog != nullptr) {
+            dog->SetPosition(new_dog_pos);
+        } else if (vertical_road_with_dog == nullptr && horizontal_road_with_dog == nullptr) {
+            dog->Stop();
+        } else {
             switch (dog->GetDirection()) {
-
                 case Direction::NORTH: {
                     if (vertical_road_with_dog != nullptr) {
                         new_dog_pos = {cur_dog_pos.x, vertical_road_with_dog->GetUpperEdge()};
@@ -334,11 +334,8 @@ void GameSession::UpdateState(std::uint64_t tick) {
                     throw std::logic_error("unknown direction for dog");
             }
             dog->Stop();
-        } else {
-            dog->Stop();
-            return;
+            dog->SetPosition(new_dog_pos);
         }
-        dog->SetPosition(new_dog_pos);
     }
 }
 
