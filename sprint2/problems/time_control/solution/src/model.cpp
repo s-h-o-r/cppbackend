@@ -49,12 +49,10 @@ Point Road::GetEnd() const noexcept {
 }
 
 bool Road::IsDogOnRoad(DogPoint dog_point) const {
-    double right_edge, left_edge, upper_edge, bottom_edge;
-
-    right_edge = std::max(start_.x, end_.x) + 0.4;
-    left_edge = std::min(start_.x, end_.x) - 0.4;
-    upper_edge = std::min(start_.y, end_.y) - 0.4;
-    bottom_edge = std::max(start_.y, end_.y) + 0.4;
+    DogCoord right_edge = GetRightEdge();
+    DogCoord left_edge = GetLeftEdge();
+    DogCoord upper_edge = GetUpperEdge();
+    DogCoord bottom_edge = GetBottomEdge();
 
     return dog_point.x >= left_edge && dog_point.x <= right_edge
         && dog_point.y >= upper_edge && dog_point.y <= bottom_edge;
@@ -285,7 +283,7 @@ void GameSession::UpdateState(std::uint64_t tick) {
         auto cur_dog_pos = dog->GetPosition();
         auto dog_speed = dog->GetSpeed();
         DogPoint new_dog_pos = {cur_dog_pos.x + (dog_speed.s_x * tick_multy),
-                            cur_dog_pos.y + (dog_speed.s_y * tick_multy)};
+            cur_dog_pos.y + (dog_speed.s_y * tick_multy)};
 
         const Road* vertical_road_with_dog = map_->GetVerticalRoad(cur_dog_pos);
         const Road* horizontal_road_with_dog = map_->GetHorizontalRoad(cur_dog_pos);
@@ -293,18 +291,17 @@ void GameSession::UpdateState(std::uint64_t tick) {
         const Road* new_vertical_road_with_dog = map_->GetVerticalRoad(new_dog_pos);
         const Road* new_horizontal_road_with_dog = map_->GetHorizontalRoad(new_dog_pos);
 
-        if ((vertical_road_with_dog == new_vertical_road_with_dog && vertical_road_with_dog != nullptr) ||
-            (horizontal_road_with_dog == new_horizontal_road_with_dog && horizontal_road_with_dog != nullptr)) {
-            dog->SetPosition(new_dog_pos);
-        } else if (vertical_road_with_dog == nullptr && horizontal_road_with_dog == nullptr) {
-            dog->Stop();
-        } else {
+        if (!((vertical_road_with_dog == new_vertical_road_with_dog && vertical_road_with_dog != nullptr) ||
+              (horizontal_road_with_dog == new_horizontal_road_with_dog && horizontal_road_with_dog != nullptr))) {
+
             switch (dog->GetDirection()) {
                 case Direction::NORTH: {
                     if (vertical_road_with_dog != nullptr) {
                         new_dog_pos = {cur_dog_pos.x, vertical_road_with_dog->GetUpperEdge()};
                     } else if (horizontal_road_with_dog != nullptr) {
                         new_dog_pos = {cur_dog_pos.x, horizontal_road_with_dog->GetUpperEdge()};
+                    } else {
+                        throw std::logic_error("imposobile dog position");
                     }
                     break;
                 }
@@ -313,6 +310,8 @@ void GameSession::UpdateState(std::uint64_t tick) {
                         new_dog_pos = {cur_dog_pos.x, vertical_road_with_dog->GetBottomEdge()};
                     } else if (horizontal_road_with_dog != nullptr) {
                         new_dog_pos = {cur_dog_pos.x, horizontal_road_with_dog->GetBottomEdge()};
+                    } else {
+                        throw std::logic_error("imposobile dog position");
                     }
                     break;
                 }
@@ -321,6 +320,8 @@ void GameSession::UpdateState(std::uint64_t tick) {
                         new_dog_pos = {horizontal_road_with_dog->GetLeftEdge(), cur_dog_pos.y};
                     } else if (vertical_road_with_dog != nullptr) {
                         new_dog_pos = {vertical_road_with_dog->GetLeftEdge(), cur_dog_pos.y};
+                    } else {
+                        throw std::logic_error("imposobile dog position");
                     }
                     break;
                 }
@@ -329,6 +330,8 @@ void GameSession::UpdateState(std::uint64_t tick) {
                         new_dog_pos = {horizontal_road_with_dog->GetRightEdge(), cur_dog_pos.y};
                     } else if (vertical_road_with_dog != nullptr) {
                         new_dog_pos = {vertical_road_with_dog->GetRightEdge(), cur_dog_pos.y};
+                    } else {
+                        throw std::logic_error("imposobile dog position");
                     }
                     break;
                 }
@@ -336,8 +339,8 @@ void GameSession::UpdateState(std::uint64_t tick) {
                     throw std::logic_error("unknown direction for dog");
             }
             dog->Stop();
-            dog->SetPosition(new_dog_pos);
         }
+        dog->SetPosition(new_dog_pos);
     }
 }
 
