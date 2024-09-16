@@ -119,7 +119,7 @@ void Map::SetDogSpeed(Velocity speed) {
 }
 
 void Map::AddRoad(Road&& road) {
-    roads_.emplace_back(std::move(road));
+    roads_.push_back(std::move(road));
     Road& new_road = roads_.back();
     if (new_road.IsVertical()) {
         vertical_road_index_[new_road.GetStart().x].push_back(&new_road);
@@ -173,6 +173,7 @@ DogPoint Map::GetRandomDogPoint() const {
 
 const Road* Map::GetVerticalRoad(DogPoint dog_point) const {
     Point map_point = dog_point.ConvertToMapPoint();
+    
     if (vertical_road_index_.contains(map_point.x)) {
         for (const Road* road : vertical_road_index_.at(map_point.x)) {
             if (road->IsDogOnRoad(dog_point)) {
@@ -285,46 +286,54 @@ void GameSession::UpdateState(std::int64_t tick) {
         const Road* vertical_road_with_dog = map_->GetVerticalRoad(cur_dog_pos);
         const Road* horizontal_road_with_dog = map_->GetHorizontalRoad(cur_dog_pos);
 
-        if ((vertical_road_with_dog && !vertical_road_with_dog->IsDogOnRoad(new_dog_pos)) &&
-            (horizontal_road_with_dog && !horizontal_road_with_dog->IsDogOnRoad(new_dog_pos))) {
+        assert((vertical_road_with_dog != nullptr || horizontal_road_with_dog != nullptr));
 
-            switch (dog->GetDirection()) {
-                case Direction::NORTH: {
-                    if (vertical_road_with_dog != nullptr) {
-                        new_dog_pos = {cur_dog_pos.x, vertical_road_with_dog->GetUpperEdge()};
-                    } else if (horizontal_road_with_dog != nullptr) {
-                        new_dog_pos = {cur_dog_pos.x, horizontal_road_with_dog->GetUpperEdge()};
-                    }
-                    break;
+        if (vertical_road_with_dog != nullptr && vertical_road_with_dog->IsDogOnRoad(new_dog_pos)) {
+            dog->SetPosition(new_dog_pos);
+            return;
+        }
+
+        if (horizontal_road_with_dog != nullptr && horizontal_road_with_dog->IsDogOnRoad(new_dog_pos)) {
+            dog->SetPosition(new_dog_pos);
+            return;
+        }
+
+        switch (dog->GetDirection()) {
+            case Direction::NORTH: {
+                if (vertical_road_with_dog != nullptr) {
+                    new_dog_pos = {cur_dog_pos.x, vertical_road_with_dog->GetUpperEdge()};
+                } else if (horizontal_road_with_dog != nullptr) {
+                    new_dog_pos = {cur_dog_pos.x, horizontal_road_with_dog->GetUpperEdge()};
                 }
-                case Direction::SOUTH: {
-                    if (vertical_road_with_dog != nullptr) {
-                        new_dog_pos = {cur_dog_pos.x, vertical_road_with_dog->GetBottomEdge()};
-                    } else if (horizontal_road_with_dog != nullptr) {
-                        new_dog_pos = {cur_dog_pos.x, horizontal_road_with_dog->GetBottomEdge()};
-                    }
-                    break;
-                }
-                case Direction::WEST: {
-                    if (horizontal_road_with_dog != nullptr) {
-                        new_dog_pos = {horizontal_road_with_dog->GetLeftEdge(), cur_dog_pos.y};
-                    } else if (vertical_road_with_dog != nullptr) {
-                        new_dog_pos = {vertical_road_with_dog->GetLeftEdge(), cur_dog_pos.y};
-                    }
-                    break;
-                }
-                case Direction::EAST: {
-                    if (horizontal_road_with_dog != nullptr) {
-                        new_dog_pos = {horizontal_road_with_dog->GetRightEdge(), cur_dog_pos.y};
-                    } else if (vertical_road_with_dog != nullptr) {
-                        new_dog_pos = {vertical_road_with_dog->GetRightEdge(), cur_dog_pos.y};
-                    }
-                    break;
-                }
+                break;
             }
-            dog->Stop();
+            case Direction::SOUTH: {
+                if (vertical_road_with_dog != nullptr) {
+                    new_dog_pos = {cur_dog_pos.x, vertical_road_with_dog->GetBottomEdge()};
+                } else if (horizontal_road_with_dog != nullptr) {
+                    new_dog_pos = {cur_dog_pos.x, horizontal_road_with_dog->GetBottomEdge()};
+                }
+                break;
+            }
+            case Direction::WEST: {
+                if (horizontal_road_with_dog != nullptr) {
+                    new_dog_pos = {horizontal_road_with_dog->GetLeftEdge(), cur_dog_pos.y};
+                } else if (vertical_road_with_dog != nullptr) {
+                    new_dog_pos = {vertical_road_with_dog->GetLeftEdge(), cur_dog_pos.y};
+                }
+                break;
+            }
+            case Direction::EAST: {
+                if (horizontal_road_with_dog != nullptr) {
+                    new_dog_pos = {horizontal_road_with_dog->GetRightEdge(), cur_dog_pos.y};
+                } else if (vertical_road_with_dog != nullptr) {
+                    new_dog_pos = {vertical_road_with_dog->GetRightEdge(), cur_dog_pos.y};
+                }
+                break;
+            }
         }
         dog->SetPosition(new_dog_pos);
+        dog->Stop();
     }
 }
 
