@@ -2,6 +2,7 @@
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/strand.hpp>
+#include <atomic>
 #include <cmath>
 #include <deque>
 #include <map>
@@ -14,9 +15,6 @@
 #include <vector>
 
 #include "tagged.h"
-
-
-#include <atomic>
 
 namespace detail {
 class ThreadChecker {
@@ -113,8 +111,6 @@ public:
     DogCoord GetBottomEdge() const;
 
 private:
-    std::atomic_int counter_{0};
-
     Point start_;
     Point end_;
 };
