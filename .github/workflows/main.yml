@@ -3,7 +3,6 @@ name: autotests
 on:
   pull_request:
   push:
-  workflow_dispatch:
 
 permissions:
   checks: write
