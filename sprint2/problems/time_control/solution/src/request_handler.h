@@ -456,9 +456,7 @@ private:
     }
 
     http::status ProcessStaticFileTarget(FileResponse& response, std::string_view target) const;
-    StringResponse MakeErrorStaticFileResponse(http::status status) const; /*можно реалзиовать
-                                                                            через лямбду, в которой
-                                                                            будет настраиваться ответ*/
+    StringResponse MakeErrorStaticFileResponse(http::status status) const;
 };
 
 class RequestHandler : public std::enable_shared_from_this<RequestHandler> {
@@ -466,6 +464,7 @@ public:
     explicit RequestHandler(app::Application& app, net::io_context& ioc, Strand& api_strand,
                             std::filesystem::path&& static_files_path)
         : ioc_(ioc)
+        , api_strand_(api_strand)
         , api_handler_(std::make_shared<ApiRequestHandler>(app, api_strand))
         , static_handler_(std::move(fs::canonical(static_files_path))) {
     }
@@ -479,7 +478,7 @@ public:
 
         std::string_view target = req.target();
         if (target.size() >= 4 && target.substr(0, 5) == "/api/"sv) {
-            net::dispatch(ioc_, [self = shared_from_this(), &req, &send] {
+            net::dispatch(api_strand_, [self = shared_from_this(), &req, &send] {
                 (*self->api_handler_)(std::forward<decltype(req)>(req), std::forward<Send>(send));
             });
         } else {
@@ -491,6 +490,7 @@ public:
 
 private:
     net::io_context& ioc_;
+    Strand& api_strand_;
     std::shared_ptr<ApiRequestHandler> api_handler_;
     StaticRequestHandler static_handler_;
 };
