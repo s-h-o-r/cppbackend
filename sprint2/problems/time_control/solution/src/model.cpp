@@ -275,7 +275,7 @@ void GameSession::UpdateState(std::uint64_t tick) {
 
     for (auto& [_, dog] : dogs_) {
         if (dog->IsStopped()) {
-            continue;;
+            continue;
         }
 
         auto cur_dog_pos = dog->GetPosition();
@@ -321,8 +321,6 @@ void GameSession::UpdateState(std::uint64_t tick) {
                     }
                     break;
                 }
-                default:
-                    throw std::logic_error("unknown direction for dog");
             }
             dog->Stop();
         }
@@ -357,7 +355,7 @@ const Map* Game::FindMap(const Map::Id& id) const noexcept {
 
 GameSession& Game::StartGameSession(const Map* map) {
     if (sessions_[map->GetId()].empty()) {
-        sessions_[map->GetId()].push_back(std::make_unique<GameSession>(map));
+        sessions_[map->GetId()].push_back(std::make_shared<GameSession>(map));
     }
     return *sessions_[map->GetId()].back();
 }
@@ -379,7 +377,7 @@ Velocity Game::GetDefaultGogSpeed() const noexcept {
 
 void Game::UpdateState(std::uint64_t tick) {
     for (auto& [_, map_sessions] : sessions_) {
-        for (auto& session : map_sessions) {
+        for (auto session : map_sessions) {
             session->UpdateState(tick);
         }
     }

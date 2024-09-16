@@ -289,7 +289,7 @@ public:
 private:
     using MapIdHasher = util::TaggedHasher<Map::Id>;
     using MapIdToIndex = std::unordered_map<Map::Id, size_t, MapIdHasher>;
-    using SessionsByMaps = std::unordered_map<Map::Id, std::vector<std::unique_ptr<GameSession>>, MapIdHasher>;
+    using SessionsByMaps = std::unordered_map<Map::Id, std::vector<std::shared_ptr<GameSession>>, MapIdHasher>;
 
     std::vector<Map> maps_;
     MapIdToIndex map_id_to_index_;
