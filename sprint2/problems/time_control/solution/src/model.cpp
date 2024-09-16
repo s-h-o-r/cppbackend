@@ -273,8 +273,6 @@ void GameSession::UpdateState(std::uint64_t tick) {
     double ms_convertion = 0.001; // 1ms = 0.001s
     double tick_multy = tick * ms_convertion;
 
-    detail::ThreadChecker checker(counter_);
-
     for (auto& [_, dog] : dogs_) {
         if (dog->IsStopped()) {
             continue;;
