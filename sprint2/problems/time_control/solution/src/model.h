@@ -97,9 +97,6 @@ public:
     constexpr static HorizontalTag HORIZONTAL{};
     constexpr static VerticalTag VERTICAL{};
 
-    constexpr static double WIDTH_ROAD_COEF_MINUS = -0.4;
-    constexpr static double WIDTH_ROAD_COEF_PLUS = 0.4;
-
     Road(HorizontalTag, Point start, Coord end_x) noexcept;
     Road(VerticalTag, Point start, Coord end_y) noexcept;
 
@@ -108,7 +105,12 @@ public:
     Point GetStart() const noexcept;
     Point GetEnd() const noexcept;
 
-    bool IsPointOnRoad(Point point) const;
+    bool IsDogOnRoad(DogPoint dog_point) const;
+
+    DogCoord GetLeftEdge() const;
+    DogCoord GetRightEdge() const;
+    DogCoord GetUpperEdge() const;
+    DogCoord GetBottomEdge() const;
 
 private:
     Point start_;

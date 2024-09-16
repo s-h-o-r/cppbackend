@@ -48,16 +48,39 @@ Point Road::GetEnd() const noexcept {
     return end_;
 }
 
-bool Road::IsPointOnRoad(Point point) const {
+bool Road::IsDogOnRoad(DogPoint dog_point) const {
+    double right_edge, left_edge, upper_edge, bottom_edge;
+
     if (IsVertical()) {
-        return start_.x == point.x
-            && point.y >= std::min(start_.y, end_.y)
-            && point.y <= std::max(start_.y, end_.y);
+        right_edge = start_.x + 0.4;
+        left_edge = start_.x - 0.4;
+        upper_edge = std::min(start_.y, end_.y) - 0.4;
+        bottom_edge = std::max(start_.y, end_.y) + 0.4;
+
     } else {
-        return start_.y == point.y
-            && point.x >= std::min(start_.x, end_.x)
-            && point.x <= std::max(start_.x, end_.x);
+        right_edge = std::max(start_.x, end_.x) + 0.4;
+        left_edge = std::min(start_.x, end_.x) - 0.4;
+        upper_edge = start_.y - 0.4;
+        bottom_edge = start_.y + 0.4;
     }
+    return dog_point.x >= left_edge && dog_point.x <= right_edge
+        && dog_point.y >= upper_edge && dog_point.y <= bottom_edge;
+}
+
+DogCoord Road::GetLeftEdge() const {
+    return std::min(start_.x, end_.x) - 0.4;
+}
+
+DogCoord Road::GetRightEdge() const {
+    return std::max(start_.x, end_.x) + 0.4;
+}
+
+DogCoord Road::GetUpperEdge() const {
+    return std::min(start_.y, end_.y) - 0.4;
+}
+
+DogCoord Road::GetBottomEdge() const {
+    return std::max(start_.y, end_.y) + 0.4;
 }
 
 const Rectangle& Building::GetBounds() const noexcept {
@@ -159,23 +182,9 @@ DogPoint Map::GetRandomDogPoint() const {
 
 const Road* Map::GetVerticalRoad(DogPoint dog_point) const {
     Point map_point = dog_point.ConvertToMapPoint();
-
-    double difference_x = (double)map_point.x - dog_point.x;
-    double difference_y = (double)map_point.y- dog_point.y;
-
-    if (difference_x > Road::WIDTH_ROAD_COEF_MINUS
-        && difference_x < Road::WIDTH_ROAD_COEF_PLUS
-        && vertical_road_index_.contains(map_point.x)) {
+    if (vertical_road_index_.contains(map_point.x)) {
         for (const Road* road : vertical_road_index_.at(map_point.x)) {
-            if (road->GetStart().y == map_point.y || road->GetEnd().y == map_point.y) {
-                double min_dog_coord = std::min(road->GetStart().y, road->GetEnd().y) - 0.4;
-                double max_dog_coord = std::max(road->GetStart().y, road->GetEnd().y) + 0.4;
-                if (dog_point.y < min_dog_coord || max_dog_coord < dog_point.y) {
-                    continue;
-                }
-            }
-
-            if (road->IsPointOnRoad(map_point)) {
+            if (road->IsDogOnRoad(dog_point)) {
                 return road;
             }
         }
@@ -185,23 +194,9 @@ const Road* Map::GetVerticalRoad(DogPoint dog_point) const {
 
 const Road* Map::GetHorizontalRoad(DogPoint dog_point) const {
     Point map_point = dog_point.ConvertToMapPoint();
-
-    double difference_x = (double)map_point.x - dog_point.x;
-    double difference_y = (double)map_point.y- dog_point.y;
-
-    if (difference_y > Road::WIDTH_ROAD_COEF_MINUS
-        && difference_y < Road::WIDTH_ROAD_COEF_PLUS
-        && horizontal_road_index_.contains(map_point.y)) {
+    if (horizontal_road_index_.contains(map_point.y)) {
         for (const Road* road : horizontal_road_index_.at(map_point.y)) {
-            if (road->GetStart().x == map_point.x || road->GetEnd().x == map_point.x) {
-                double min_dog_coord = std::min(road->GetStart().x, road->GetEnd().x) - 0.4;
-                double max_dog_coord = std::max(road->GetStart().x, road->GetEnd().x) + 0.4;
-                if (dog_point.x < min_dog_coord || max_dog_coord < dog_point.x) {
-                    continue;
-                }
-            }
-
-            if (road->IsPointOnRoad(map_point)) {
+            if (road->IsDogOnRoad(dog_point)) {
                 return road;
             }
         }
@@ -303,56 +298,44 @@ void GameSession::UpdateState(std::uint64_t tick) {
         const Road* new_vertical_road_with_dog = map_->GetVerticalRoad(new_dog_pos);
         const Road* new_horizontal_road_with_dog = map_->GetHorizontalRoad(new_dog_pos);
 
-        /*
         if (vertical_road_with_dog == nullptr && horizontal_road_with_dog == nullptr) {
             throw std::runtime_error("imposible dog position");
         }
-*/
-        if ((vertical_road_with_dog != new_vertical_road_with_dog && vertical_road_with_dog != nullptr)
-               || (horizontal_road_with_dog != new_horizontal_road_with_dog && horizontal_road_with_dog != nullptr)) {
+
+        if (!((vertical_road_with_dog == new_vertical_road_with_dog && vertical_road_with_dog != nullptr)
+              || (horizontal_road_with_dog == new_horizontal_road_with_dog && horizontal_road_with_dog != nullptr))) {
 
             switch (dog->GetDirection()) {
                 case Direction::NORTH: {
                     if (vertical_road_with_dog != nullptr) {
-                        Coord edge_road_coord = std::min(vertical_road_with_dog->GetStart().y,
-                                                         vertical_road_with_dog->GetEnd().y);
-                        new_dog_pos = {cur_dog_pos.x, edge_road_coord - 0.4};
+                        new_dog_pos = {cur_dog_pos.x, vertical_road_with_dog->GetUpperEdge()};
                     } else if (horizontal_road_with_dog != nullptr) {
-                        Coord y_coord = cur_dog_pos.ConvertToMapPoint().y;
-                        new_dog_pos = {cur_dog_pos.x, y_coord - 0.4};
+                        new_dog_pos = {cur_dog_pos.x, horizontal_road_with_dog->GetUpperEdge()};
                     }
                     break;
                 }
                 case Direction::SOUTH: {
                     if (vertical_road_with_dog != nullptr) {
-                        Coord edge_road_coord = std::max(vertical_road_with_dog->GetStart().y,
-                                                         vertical_road_with_dog->GetEnd().y);
-                        new_dog_pos = {cur_dog_pos.x, edge_road_coord + 0.4};
+                        new_dog_pos = {cur_dog_pos.x, vertical_road_with_dog->GetBottomEdge()};
                     } else if (horizontal_road_with_dog != nullptr) {
-                        Coord y_coord = cur_dog_pos.ConvertToMapPoint().y;
-                        new_dog_pos = {cur_dog_pos.x, y_coord + 0.4};
+                        new_dog_pos = {cur_dog_pos.x, horizontal_road_with_dog->GetBottomEdge()};
                     }
                     break;
                 }
                 case Direction::WEST: {
                     if (horizontal_road_with_dog != nullptr) {
-                        Coord edge_road_coord = std::min(horizontal_road_with_dog->GetStart().x,
-                                                         horizontal_road_with_dog->GetEnd().x);
-                        new_dog_pos = {edge_road_coord - 0.4, cur_dog_pos.y};
+                        new_dog_pos = {horizontal_road_with_dog->GetLeftEdge(), cur_dog_pos.y};
                     } else if (vertical_road_with_dog != nullptr) {
-                        Coord x_coord = cur_dog_pos.ConvertToMapPoint().x;
-                        new_dog_pos = {x_coord - 0.4, cur_dog_pos.y};
+                        new_dog_pos = {vertical_road_with_dog->GetLeftEdge(), cur_dog_pos.y};
                     }
                     break;
                 }
                 case Direction::EAST: {
                     if (horizontal_road_with_dog != nullptr) {
-                        Coord edge_road_coord = std::max(horizontal_road_with_dog->GetStart().x,
-                                                         horizontal_road_with_dog->GetEnd().x);
-                        new_dog_pos = {edge_road_coord + 0.4, cur_dog_pos.y};
+                        new_dog_pos = {horizontal_road_with_dog->GetRightEdge(), cur_dog_pos.y};
                     } else if (vertical_road_with_dog != nullptr) {
                         Coord x_coord = cur_dog_pos.ConvertToMapPoint().x;
-                        new_dog_pos = {x_coord + 0.4, cur_dog_pos.y};
+                        new_dog_pos = {vertical_road_with_dog->GetRightEdge(), cur_dog_pos.y};
                     }
                     break;
                 }
