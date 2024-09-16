@@ -113,6 +113,8 @@ public:
     DogCoord GetBottomEdge() const;
 
 private:
+    std::atomic_int counter_{0};
+
     Point start_;
     Point end_;
 };
