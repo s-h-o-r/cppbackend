@@ -242,7 +242,6 @@ bool Dog::IsStopped() const {
 }
 
 const Map::Id& GameSession::GetMapId() const {
-    assert(map_ != nullptr);
     return map_->GetId();
 }
 
@@ -271,7 +270,7 @@ const GameSession::IdToDogIndex& GameSession::GetDogs() const {
 
 void GameSession::UpdateState(std::uint64_t tick) {
     double ms_convertion = 0.001; // 1ms = 0.001s
-    double tick_multy = tick * ms_convertion;
+    double tick_multy = static_cast<double>(tick) * ms_convertion;
 
     for (auto& [_, dog] : dogs_) {
         if (dog->IsStopped()) {
