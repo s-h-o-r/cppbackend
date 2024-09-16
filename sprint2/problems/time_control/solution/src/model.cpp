@@ -268,7 +268,7 @@ const GameSession::IdToDogIndex& GameSession::GetDogs() const {
     return dogs_;
 }
 
-void GameSession::UpdateState(std::uint64_t tick) {
+void GameSession::UpdateState(std::int64_t tick) {
     double ms_convertion = 0.001; // 1ms = 0.001s
     double tick_multy = static_cast<double>(tick) * ms_convertion;
 
@@ -285,7 +285,8 @@ void GameSession::UpdateState(std::uint64_t tick) {
         const Road* vertical_road_with_dog = map_->GetVerticalRoad(cur_dog_pos);
         const Road* horizontal_road_with_dog = map_->GetHorizontalRoad(cur_dog_pos);
 
-        if (!vertical_road_with_dog->IsDogOnRoad(new_dog_pos) && !horizontal_road_with_dog->IsDogOnRoad(new_dog_pos)) {
+        if ((vertical_road_with_dog && !vertical_road_with_dog->IsDogOnRoad(new_dog_pos)) &&
+            (horizontal_road_with_dog && !horizontal_road_with_dog->IsDogOnRoad(new_dog_pos))) {
 
             switch (dog->GetDirection()) {
                 case Direction::NORTH: {
@@ -374,7 +375,7 @@ Velocity Game::GetDefaultGogSpeed() const noexcept {
     return default_dog_speed_;
 }
 
-void Game::UpdateState(std::uint64_t tick) {
+void Game::UpdateState(std::int64_t tick) {
     for (auto& [_, map_sessions] : sessions_) {
         for (auto session : map_sessions) {
             session->UpdateState(tick);

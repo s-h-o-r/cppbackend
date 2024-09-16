@@ -166,7 +166,7 @@ private:
                 switch (req.method()) {
                     case http::verb::post:
                         net::dispatch(strand_, [self = shared_from_this(), &req, &response] () {
-                            
+                            assert(self->strand_.running_in_this_thread());
                             self->ProcessApiAction(req, response);
                         });
                         break;

@@ -140,7 +140,7 @@ public:
         : game_(game) {
     }
 
-    void ProcessTick(std::uint64_t tick);
+    void ProcessTick(std::int64_t tick);
 
 private:
     model::Game* game_;
@@ -160,7 +160,7 @@ public:
     const model::GameSession::IdToDogIndex& ListPlayers(std::string_view token) const;
     JoinGameResult JoinGame(const std::string& user_name, const std::string& map_id);
     bool MoveDog(std::string_view token, std::string_view move);
-    void ProcessTick(std::uint64_t tick);
+    void ProcessTick(std::int64_t tick);
 
     bool IsTokenValid(std::string_view token) const;
 private:

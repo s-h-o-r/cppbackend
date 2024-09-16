@@ -103,7 +103,7 @@ bool ManageDogActionsUseCase::MoveDog(std::string_view token, std::string_view m
     return true;
 }
 
-void ProcessTickUseCase::ProcessTick(std::uint64_t tick) {
+void ProcessTickUseCase::ProcessTick(std::int64_t tick) {
     game_->UpdateState(tick);
 }
 
@@ -127,7 +127,7 @@ bool Application::MoveDog(std::string_view token, std::string_view move) {
     return manage_dog_actions_use_case_.MoveDog(token, move);
 }
 
-void Application::ProcessTick(std::uint64_t tick) {
+void Application::ProcessTick(std::int64_t tick) {
     process_tick_use_case_.ProcessTick(tick);
 }
 

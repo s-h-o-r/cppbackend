@@ -256,7 +256,7 @@ public:
     Dog* AddDog(std::string_view name);
     const IdToDogIndex& GetDogs() const;
 
-    void UpdateState(std::uint64_t tick);
+    void UpdateState(std::int64_t tick);
 
 private:
     const Map* map_;
@@ -284,7 +284,7 @@ public:
     void SetDogSpeed(Velocity default_speed);
     Velocity GetDefaultGogSpeed() const noexcept;
 
-    void UpdateState(std::uint64_t tick);
+    void UpdateState(std::int64_t tick);
 
 private:
     using MapIdHasher = util::TaggedHasher<Map::Id>;
