@@ -65,17 +65,19 @@ int main(int argc, const char* argv[]) {
         app::Application app(&game);
         auto game_state_strand = net::make_strand(ioc);
 
+        
         auto handler = std::make_shared<http_handler::RequestHandler>(app, ioc, game_state_strand, argv[2]);
+        http_logger::InitBoostLogFilter(http_logger::LogFormatter);
+        http_logger::LogginRequestHandler<http_handler::RequestHandler> logging_handler(*handler);
 
         // 5. Запустить обработчик HTTP-запросов, делегируя их обработчику запросов
         const auto address = net::ip::make_address("0.0.0.0");
         constexpr net::ip::port_type port = 8080;
-        http_server::ServeHttp(ioc, {address, port}, [handler](auto&& req, auto&& send) {
-            (*handler)(std::forward<decltype(req)>(req), std::forward<decltype(send)>(send));
+        http_server::ServeHttp(ioc, {address, port}, [&logging_handler](auto&& req, auto client_ip, auto&& send) {
+            logging_handler(std::forward<decltype(req)>(req), client_ip, std::forward<decltype(send)>(send));
         });
 
         // Эта надпись сообщает тестам о том, что сервер запущен и готов обрабатывать запросы
-        http_logger::InitBoostLogFilter(http_logger::LogFormatter);
         http_logger::LogServerStart(port, address.to_string());
 
         // 6. Запускаем обработку асинхронных операций

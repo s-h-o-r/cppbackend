@@ -187,16 +187,19 @@ void ApiRequestHandler::ProcessApiMaps(StringResponse& response,
         std::string map_name(target.begin() + 13,
             *(target.end() - 1) == '/' ? target.end() - 1 : target.end());
 
-        const model::Map* map = game_.FindMap(model::Map::Id(map_name));
-        if (map == nullptr) {
-            MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::map_not_found, "Map not found");
-            return;
+        try {
+            const model::Map* map = app_.FindMap(model::Map::Id(map_name));
+            response.body() = ParseMapToJson(map);
+        } catch (const app::GetMapError& error) {
+            switch (error.reason) {
+                case app::GetMapErrorReason::mapNotFound:
+                    MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::map_not_found, error.what());
+                    return;
+            }
         }
-
-        response.body() = ParseMapToJson(map);
     } else {
         json::array maps_json;
-        const model::Game::Maps& maps = game_.GetMaps();
+        const model::Game::Maps& maps = app_.ListMaps();
         for (const auto& map : maps) {
             maps_json.push_back({
                 {"id", *map.GetId()}, {"name", map.GetName()}
@@ -229,11 +232,7 @@ void ApiRequestHandler::MakeErrorApiResponse(StringResponse& response, ApiReques
             break;
         }
 
-        case ec::invalid_method_players:
-            response.set(http::field::cache_control, "no-cache");
-            [[fallthrough]];
-            
-        case ec::invalid_method_common:
+        case ec::invalid_method_get_head:
         {
             response.result(http::status::method_not_allowed);
             json::value jv = {
@@ -245,7 +244,7 @@ void ApiRequestHandler::MakeErrorApiResponse(StringResponse& response, ApiReques
             break;
         }
 
-        case ec::invalid_method_join:
+        case ec::invalid_method_post:
         {
             response.result(http::status::method_not_allowed);
             json::value jv = {
@@ -297,18 +296,6 @@ void ApiRequestHandler::MakeErrorApiResponse(StringResponse& response, ApiReques
             json::value jv = {
                 {"code", "unknownToken"},
                 {"message", message}
-            };
-            response.body() = json::serialize(jv);
-            break;
-        }
-
-        case ec::unknown:
-        default:
-        {
-            response.result(http::status::unknown);
-            json::value jv = {
-                {"code", "unknownRequest"},
-                {"message", "Unknown request"}
             };
             response.body() = json::serialize(jv);
             break;

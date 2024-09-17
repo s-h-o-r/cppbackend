@@ -9,6 +9,10 @@ const model::Dog* Player::GetDog() const {
     return dog_;
 }
 
+model::Dog* Player::GetDog() {
+    return dog_;
+}
+
 const model::GameSession* Player::GetGameSession() const {
     return session_;
 }

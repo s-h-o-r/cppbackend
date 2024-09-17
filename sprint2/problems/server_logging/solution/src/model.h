@@ -2,6 +2,9 @@
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/strand.hpp>
+#include <atomic>
+#include <cmath>
+#include <deque>
 #include <map>
 #include <memory>
 #include <numeric>
@@ -12,9 +15,6 @@
 #include <vector>
 
 #include "tagged.h"
-
-
-#include <atomic>
 
 namespace detail {
 class ThreadChecker {
@@ -60,6 +60,28 @@ struct Offset {
     Dimension dx, dy;
 };
 
+using DogCoord = double;
+using Velocity = double;
+
+struct DogPoint {
+    DogCoord x, y;
+
+    Point ConvertToMapPoint() const {
+        return {static_cast<Coord>(std::round(x)),
+            static_cast<Coord>(std::round(y))};
+    }
+};
+
+struct Speed {
+    Velocity s_x, s_y;
+};
+
+enum class Direction {
+    NORTH, SOUTH, WEST, EAST
+};
+
+std::string DirectionToString(Direction dir);
+
 class Road {
     struct HorizontalTag {
         explicit HorizontalTag() = default;
@@ -80,6 +102,13 @@ public:
     bool IsVertical() const noexcept;
     Point GetStart() const noexcept;
     Point GetEnd() const noexcept;
+
+    bool IsDogOnRoad(DogPoint dog_point) const;
+
+    DogCoord GetLeftEdge() const;
+    DogCoord GetRightEdge() const;
+    DogCoord GetUpperEdge() const;
+    DogCoord GetBottomEdge() const;
 
 private:
     Point start_;
@@ -121,7 +150,7 @@ private:
 class Map {
 public:
     using Id = util::Tagged<std::string, Map>;
-    using Roads = std::vector<Road>;
+    using Roads = std::deque<Road>;
     using Buildings = std::vector<Building>;
     using Offices = std::vector<Office>;
 
@@ -132,20 +161,37 @@ public:
 
     const Id& GetId() const noexcept;
     const std::string& GetName() const noexcept;
+    Velocity GetSpeed() const noexcept;
     const Buildings& GetBuildings() const noexcept;
     const Roads& GetRoads() const noexcept;
     const Offices& GetOffices() const noexcept;
 
-    void AddRoad(const Road& road);
-    void AddBuilding(const Building& building);
-    void AddOffice(Office office);
+    void SetDogSpeed(Velocity speed);
+    void AddRoad(Road&& road);
+    void AddBuilding(Building&& building);
+    void AddOffice(Office&& office);
+
+    DogPoint GetRandomDogPoint() const;
+
+    const Road* GetVerticalRoad(DogPoint dog_point) const;
+    const Road* GetHorizontalRoad(DogPoint dog_point) const;
+
+    std::vector<const Road*> GetRelevantRoads(DogPoint dog_point) const;
 
 private:
     using OfficeIdToIndex = std::unordered_map<Office::Id, size_t, util::TaggedHasher<Office::Id>>;
+    using VerticalRoadIndex = std::unordered_map<Coord, std::vector<const Road*>>;
+    using HorizontalRoadIndex = std::unordered_map<Coord, std::vector<const Road*>>;
+
 
     Id id_;
     std::string name_;
+    Velocity dog_speed_;
+
     Roads roads_;
+    VerticalRoadIndex vertical_road_index_;
+    HorizontalRoadIndex horizontal_road_index_;
+
     Buildings buildings_;
 
     OfficeIdToIndex warehouse_id_to_index_;
@@ -158,9 +204,11 @@ class Dog {
 public:
     using Id = util::Tagged<std::uint32_t, Dog>;
 
-    explicit Dog(std::string name) noexcept
+    explicit Dog(std::string name, DogPoint pos, Speed speed) noexcept
         : id_(next_dog_id++)
-        , name_(name) {
+        , name_(name)
+        , pos_(pos)
+        , speed_(speed) {
             detail::ThreadChecker varname(counter_);
     }
 
@@ -168,9 +216,22 @@ public:
     const Id& GetId() const noexcept;
     void SetName(std::string_view name);
 
+    void SetPosition(DogPoint new_pos);
+    const DogPoint& GetPosition() const;
+    void SetSpeed(Speed new_speed);
+    const Speed& GetSpeed() const;
+    void SetDirection(Direction new_dir);
+    Direction GetDirection() const;
+
+    void Stop();
+    bool IsStopped() const;
+    
 private:
     Id id_;
     std::string name_;
+    DogPoint pos_;
+    Speed speed_;
+    Direction dir_ = Direction::NORTH;
 
     std::atomic_int counter_{0};
     static inline std::uint32_t next_dog_id = 0;
@@ -182,9 +243,8 @@ public:
     using DogIdHasher = util::TaggedHasher<Dog::Id>;
     using IdToDogIndex = std::map<Dog::Id, std::shared_ptr<Dog>>;
 
-    explicit GameSession(net::io_context& ioc, const Map* map)
-        : strand_{net::make_strand(ioc)}
-        , map_(map) {
+    explicit GameSession(const Map* map)
+        : map_(map) {
             if (map == nullptr) {
                 throw std::runtime_error("Cannot open game session on empty map");
             }
@@ -194,11 +254,13 @@ public:
     GameSession operator=(const GameSession&) = delete;
 
     const Map::Id& GetMapId() const;
+    const model::Map* GetMap() const;
     Dog* AddDog(std::string_view name);
     const IdToDogIndex& GetDogs() const;
 
+    void UpdateState(std::int64_t tick);
+
 private:
-    net::strand<net::io_context::executor_type> strand_;
     const Map* map_;
     IdToDogIndex dogs_;
 
@@ -213,7 +275,7 @@ public:
     const Maps& GetMaps() const noexcept;
     const Map* FindMap(const Map::Id& id) const noexcept;
 
-    GameSession& StartGameSession(net::io_context& ioc, const Map* map);
+    GameSession& StartGameSession(const Map* map);
     GameSession* GetGameSession(Map::Id map_id);
     /* на данном этапе сессия будет одна, но можно будет расширить
      функционал, если нужно будет ограничить количесто сессий на одной карте. Тогда вторым
@@ -221,13 +283,20 @@ public:
      На данном этапе мы создаем в векторе только одну сессию и берем ее с конца вектора
      */
 
+    void SetDogSpeed(Velocity default_speed);
+    Velocity GetDefaultGogSpeed() const noexcept;
+
+    void UpdateState(std::int64_t tick);
+
 private:
     using MapIdHasher = util::TaggedHasher<Map::Id>;
     using MapIdToIndex = std::unordered_map<Map::Id, size_t, MapIdHasher>;
-    using SessionsByMaps = std::unordered_map<Map::Id, std::vector<std::unique_ptr<GameSession>>, MapIdHasher>;
+    using SessionsByMaps = std::unordered_map<Map::Id, std::vector<std::shared_ptr<GameSession>>, MapIdHasher>;
 
     std::vector<Map> maps_;
     MapIdToIndex map_id_to_index_;
+
+    Velocity default_dog_speed_ = 1.;
 
     SessionsByMaps sessions_;
 };

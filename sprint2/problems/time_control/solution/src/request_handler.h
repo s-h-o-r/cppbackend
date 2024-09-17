@@ -6,6 +6,7 @@
 
 #include "app.h"
 #include "http_server.h"
+#include "logger.h"
 #include "model.h"
 #include "player.h"
 
@@ -112,9 +113,9 @@ private:
         using namespace std::literals;
 
         StringResponse response;
+        FillBasicInfo(req, response);
         response.set(http::field::cache_control, "no-cache");
         try {
-            FillBasicInfo(req, response);
             
             if (target.substr(0, 12) == "/api/v1/maps"sv) {
                 switch (req.method()) {
@@ -123,7 +124,7 @@ private:
                         ProcessApiMaps(response, target);
                         break;
                     default:
-                        MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::invalid_method_common,
+                        MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::invalid_method_get_head,
                                              "Invalid method"sv);
                         break;
                 }
@@ -195,7 +196,8 @@ private:
                                      "Bad request"sv);
             }
         } catch (...) {
-            MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::unknown, "Unknown send api response error"sv);
+            MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::bad_request,
+                                 "Uknown error"sv);
         }
 
         net::dispatch(strand_, [&response, &send] () {
@@ -350,10 +352,8 @@ private:
     }
 
     enum class ErrorCode {
-        unknown,
-        map_not_found, invalid_method_common, invalid_method_post,
-        invalid_argument, bad_request, invalid_token, unknown_token,
-        invalid_method_get_head
+        map_not_found, invalid_method_get_head, invalid_method_post,
+        invalid_argument, bad_request, invalid_token, unknown_token
     };
 
     template <typename Request, typename Executor>
@@ -373,7 +373,7 @@ private:
                     MakeErrorApiResponse(response, ErrorCode::invalid_token, "Authorization header is required"sv);
                     break;
                 default:
-                    MakeErrorApiResponse(response, ErrorCode::unknown, "Unknown error code while getting raw token"sv);
+                    MakeErrorApiResponse(response, ErrorCode::bad_request, "Unknown error code while getting raw token"sv);
                     break;
             }
             return;

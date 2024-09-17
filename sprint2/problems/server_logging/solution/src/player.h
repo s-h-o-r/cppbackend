@@ -23,6 +23,7 @@ public:
         , dog_(dog) {
     }
 
+    model::Dog* GetDog();
     const model::Dog* GetDog() const;
     const model::GameSession* GetGameSession() const;
 

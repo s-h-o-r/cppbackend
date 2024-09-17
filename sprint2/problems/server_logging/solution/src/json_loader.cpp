@@ -42,9 +42,15 @@ model::Office PrepareOffice(json::object& office_info) {
     return {model::Office::Id{id_str}, point, offset};
 }
 
-model::Map PrepareMap(json::object& map_info) {
+model::Map PrepareMap(json::object& map_info, model::Velocity default_dog_speed) {
     model::Map map(model::Map::Id(json::value_to<std::string>(map_info.at("id"sv))),
                    json::value_to<std::string>(map_info.at("name"sv)));
+
+    if (map_info.count("dogSpeed"sv)) {
+        map.SetDogSpeed(json::value_to<double>(map_info.at("dogSpeed"sv)));
+    } else {
+        map.SetDogSpeed(default_dog_speed);
+    }
 
     json::array roads = map_info.at("roads"sv).as_array();
     for (auto it = roads.begin(); it != roads.end(); ++it) {
@@ -82,10 +88,16 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
 
     json::value game_info{json::parse(json_data, ec)};
 
+    model::Velocity default_dog_speed = 1.0;
+
+    if (game_info.as_object().count("defaultDogSpeed"sv)) {
+        default_dog_speed = json::value_to<model::Velocity>(game_info.at("defaultDogSpeed"sv));
+    }
+
     json::array& maps = game_info.as_object().at("maps"sv).as_array();
 
     for (auto it = maps.begin(); it != maps.end(); ++it) {
-        game.AddMap(PrepareMap(it->as_object()));
+        game.AddMap(PrepareMap(it->as_object(), default_dog_speed));
     }
 
     return game;

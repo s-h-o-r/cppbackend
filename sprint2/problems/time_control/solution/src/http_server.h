@@ -74,12 +74,8 @@ private:
     RequestHandler request_handler_;
 
     void HandlerRequest(HttpRequest&& request) override {
-        http_logger::DurationMeasure dur;
-        auto remote_address = GetRemoteEndpoint().address();
-        http_logger::LogRequest(remote_address.to_string(), request);
-
-        request_handler_(std::move(request), [&dur, self = this->shared_from_this()](auto&& response) {
-            http_logger::LogResponse(dur.Count(), response);
+        request_handler_(std::move(request), GetRemoteEndpoint().address().to_string(),
+                         [self = this->shared_from_this()](auto&& response) {
             self->Write(std::move(response));
         });
     }
