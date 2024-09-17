@@ -176,6 +176,8 @@ public:
     const Road* GetVerticalRoad(DogPoint dog_point) const;
     const Road* GetHorizontalRoad(DogPoint dog_point) const;
 
+    std::vector<const Road*> GetRelevantRoads(DogPoint dog_point) const;
+
 private:
     using OfficeIdToIndex = std::unordered_map<Office::Id, size_t, util::TaggedHasher<Office::Id>>;
     using VerticalRoadIndex = std::unordered_map<Coord, std::vector<const Road*>>;

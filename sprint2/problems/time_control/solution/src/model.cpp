@@ -196,6 +196,16 @@ const Road* Map::GetHorizontalRoad(DogPoint dog_point) const {
     return nullptr;
 }
 
+std::vector<const Road*> Map::GetRelevantRoads(DogPoint dog_point) const {
+    std::vector<const Road*> relevant_road;
+    for (auto& road : roads_) {
+        if (road.IsDogOnRoad(dog_point)) {
+            relevant_road.push_back(&road);
+        }
+    }
+    return relevant_road;
+}
+
 const std::string& Dog::GetName() const noexcept {
     return name_;
 }
@@ -283,6 +293,65 @@ void GameSession::UpdateState(std::int64_t tick) {
         DogPoint new_dog_pos = {cur_dog_pos.x + (dog_speed.s_x * tick_multy),
             cur_dog_pos.y + (dog_speed.s_y * tick_multy)};
 
+        auto relevant_road = map_->GetRelevantRoads(cur_dog_pos);
+        if (relevant_road.empty()) {
+            throw std::logic_error("invalid dog position");
+        }
+
+        DogPoint relevant_point = cur_dog_pos;
+        bool stopped = true;
+
+        for (auto road : relevant_road) {
+            if (road->IsDogOnRoad(new_dog_pos)) {
+                relevant_point = new_dog_pos;
+                stopped = false;
+                break;
+            } else {
+
+                switch (dog->GetDirection()) {
+                    case Direction::NORTH:
+                        if (road->GetUpperEdge() < relevant_point.y) {
+                            relevant_point = {relevant_point.x, road->GetUpperEdge()};
+                        }
+                        break;
+                    case Direction::SOUTH:
+                        if (road->GetBottomEdge() > relevant_point.y) {
+                            relevant_point = {relevant_point.x, road->GetBottomEdge()};
+                        }
+                        break;
+                    case Direction::EAST:
+                        if (road->GetRightEdge() > relevant_point.x) {
+                            relevant_point = {road->GetRightEdge(), relevant_point.y};
+                        }
+                        break;
+                    case Direction::WEST:
+                        if (road->GetLeftEdge() < relevant_point.x) {
+                            relevant_point = {road->GetLeftEdge(), relevant_point.y};
+                        }
+                        break;
+                    default:
+                        throw std::logic_error("unknown dog direction");
+                        break;
+                }
+            }
+        }
+        dog->SetPosition(relevant_point);
+        if (stopped) {
+            dog->Stop();
+        }
+    }
+
+    /*
+    for (auto [_, dog] : dogs_) {
+        if (dog->IsStopped()) {
+            continue;
+        }
+
+        auto cur_dog_pos = dog->GetPosition();
+        auto dog_speed = dog->GetSpeed();
+        DogPoint new_dog_pos = {cur_dog_pos.x + (dog_speed.s_x * tick_multy),
+            cur_dog_pos.y + (dog_speed.s_y * tick_multy)};
+
         const Road* vertical_road_with_dog = map_->GetVerticalRoad(cur_dog_pos);
         const Road* horizontal_road_with_dog = map_->GetHorizontalRoad(cur_dog_pos);
 
@@ -335,6 +404,7 @@ void GameSession::UpdateState(std::int64_t tick) {
         dog->SetPosition(new_dog_pos);
         dog->Stop();
     }
+     */
 }
 
 void Game::AddMap(Map map) {

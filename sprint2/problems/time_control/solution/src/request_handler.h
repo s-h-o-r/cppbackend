@@ -179,10 +179,12 @@ private:
             } else if (target.substr(0, 17) == "/api/v1/game/tick"sv) {
                 switch (req.method()) {
                     case http::verb::post:
-                        net::dispatch(strand_, [self = shared_from_this(), &req, &response] () {
+                        ProcessApiTick(req, response);
+                        /* net::dispatch(strand_, [self = shared_from_this(), &req, &response] () {
                             assert(self->strand_.running_in_this_thread());
                             self->ProcessApiTick(req, response);
                         });
+                         */
                         break;
 
                     default:
@@ -198,9 +200,13 @@ private:
             MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::unknown, "Unknown send api response error"sv);
         }
 
+        send(response);
+
+        /*
         net::dispatch(strand_, [&response, &send] () {
             send(response);
         });
+         */
     }
 
     void ProcessApiMaps(StringResponse& response, std::string_view target) const;
