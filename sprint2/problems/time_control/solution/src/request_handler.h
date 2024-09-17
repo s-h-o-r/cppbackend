@@ -199,8 +199,6 @@ private:
             MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::unknown, "Unknown send api response error"sv);
         }
 
-        send(response);
-
         net::dispatch(strand_, [&response, &send] () {
             send(response);
         });
