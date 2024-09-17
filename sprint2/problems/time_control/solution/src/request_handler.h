@@ -179,7 +179,6 @@ private:
             } else if (target.substr(0, 17) == "/api/v1/game/tick"sv) {
                 switch (req.method()) {
                     case http::verb::post:
-                        ProcessApiTick(req, response);
                         net::dispatch(strand_, [self = shared_from_this(), &req, &response] () {
                             assert(self->strand_.running_in_this_thread());
                             self->ProcessApiTick(req, response);
