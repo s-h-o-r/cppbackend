@@ -180,11 +180,10 @@ private:
                 switch (req.method()) {
                     case http::verb::post:
                         ProcessApiTick(req, response);
-                        /* net::dispatch(strand_, [self = shared_from_this(), &req, &response] () {
+                        net::dispatch(strand_, [self = shared_from_this(), &req, &response] () {
                             assert(self->strand_.running_in_this_thread());
                             self->ProcessApiTick(req, response);
                         });
-                         */
                         break;
 
                     default:
@@ -202,11 +201,9 @@ private:
 
         send(response);
 
-        /*
         net::dispatch(strand_, [&response, &send] () {
             send(response);
         });
-         */
     }
 
     void ProcessApiMaps(StringResponse& response, std::string_view target) const;
@@ -484,7 +481,7 @@ public:
 
         std::string_view target = req.target();
         if (target.size() >= 4 && target.substr(0, 5) == "/api/"sv) {
-            net::dispatch(api_strand_, [self = shared_from_this(), &req, &send] {
+            net::dispatch(ioc_, [self = shared_from_this(), &req, &send] {
                 (*self->api_handler_)(std::forward<decltype(req)>(req), std::forward<Send>(send));
             });
         } else {

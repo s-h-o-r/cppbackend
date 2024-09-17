@@ -282,7 +282,7 @@ const GameSession::IdToDogIndex& GameSession::GetDogs() const {
 void GameSession::UpdateState(std::int64_t tick) {
     double ms_convertion = 0.001; // 1ms = 0.001s
     double tick_multy = static_cast<double>(tick) * ms_convertion;
-/*
+
     for (auto [_, dog] : dogs_) {
         if (dog->IsStopped()) {
             continue;
@@ -340,7 +340,12 @@ void GameSession::UpdateState(std::int64_t tick) {
             dog->Stop();
         }
     }
-*/
+
+    /*
+     Где-то здесь имеется ошибка в реализации хранения индекса карт по координатам, из-за чего некоторые
+     кейсы неправильно обрабатываются на некоторых платформах (на Mac работает, в Докере падает, тесты
+     не проходит). Не разобрался, потому что не смог нормально запустить дебаггер на платформах, на которых
+     эта реализация падает. Надо будет разобраться и сделать более быстрый варинат обновления сервера
 
     for (auto [_, dog] : dogs_) {
         if (dog->IsStopped()) {
@@ -404,6 +409,7 @@ void GameSession::UpdateState(std::int64_t tick) {
         dog->SetPosition(new_dog_pos);
         dog->Stop();
     }
+     */
 }
 
 void Game::AddMap(Map map) {
