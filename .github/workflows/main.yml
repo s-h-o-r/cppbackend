@@ -3,6 +3,7 @@ name: autotests
 on:
   pull_request:
   push:
+  #workflow_dispatch:
 
 permissions:
   checks: write
@@ -10,8 +11,9 @@ permissions:
   pull-requests: write
   issues: read
 
+
 jobs:
-    sprint_2:
+  sprint_2:
     runs-on: ubuntu-22.04
     container:
       image: praktikumcpp/practicum_cpp_backend:latest
@@ -73,3 +75,8 @@ jobs:
           cd cpp-backend-tests-practicum/scripts/sprint2
           ./command_line/run.sh
 
+      - name: Publish XML reports
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          junit_files: ${{ github.workspace }}/*.xml
