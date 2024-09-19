@@ -15,7 +15,7 @@ namespace po = boost::program_options;
     Args args;
     desc.add_options()
         ("help,h", "produce help message")
-        ("tick-period,t", po::value(&args.tick_period)->value_name("milliseconds"s), "set tick period")
+        ("tick-period,t", po::value<std::int64_t>(&args.tick_period)->value_name("milliseconds"s), "set tick period")
         ("config-file,c", po::value(&args.config_file_path)->value_name("file"s), "set config file path")
         ("www-root,w", po::value(&args.static_root)->value_name("dir"s), "set static files root")
         ("randomize-spawn-points", po::bool_switch(&args.random_spawn_point), "spawn dogs at random positions");

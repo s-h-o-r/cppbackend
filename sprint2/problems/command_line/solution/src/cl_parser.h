@@ -10,7 +10,7 @@
 namespace cl_parser {
 
 struct Args {
-    unsigned int tick_period = 0;
+    std::int64_t tick_period = 0;
     std::string config_file_path;
     std::string static_root;
     bool random_spawn_point = false;
