@@ -11,8 +11,8 @@ namespace cl_parser {
 
 struct Args {
     std::int64_t tick_period = 0;
-    std::filesystem::path config_file_path;
-    std::filesystem::path static_root;
+    std::string config_file_path;
+    std::string static_root;
     bool random_spawn_point = false;
 };
 
