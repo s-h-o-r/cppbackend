@@ -31,8 +31,8 @@ void Ticker::OnTick(sys::error_code ec) {
         try {
             handler_(delta);
         } catch (...) {
-            ScheduleTick();
         }
+        ScheduleTick();
     }
 }
 

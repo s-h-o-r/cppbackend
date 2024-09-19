@@ -24,7 +24,7 @@ class DurationMeasure {
 public:
     DurationMeasure() = default;
 
-    auto Count() {
+    auto Count() const {
         std::chrono::system_clock::time_point end_ts = std::chrono::system_clock::now();
         return std::chrono::duration_cast<std::chrono::milliseconds>(end_ts - start_ts_).count();
     };
@@ -61,7 +61,8 @@ public:
     void operator()(Request&& req, std::string_view client_ip, Send&& send) {
         DurationMeasure dur;
         LogRequest(client_ip, req);
-        decorated_(std::forward<decltype(req)>(req), [this, &send, &dur] (auto&& response) {
+        decorated_(std::forward<decltype(req)>(req), [this, send = std::forward<Send>(send),
+                                                      dur = std::move(dur)] (auto&& response) {
             this->LogResponse(dur.Count(), response);
             send(response);
         });

@@ -4,8 +4,11 @@
 
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/strand.hpp>
+#include <boost/asio/write.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
+
+#include <memory>
 
 namespace http_server {
 
@@ -36,8 +39,9 @@ protected:
     template<typename Body, typename Fields>
     void Write(http::response<Body, Fields>&& response) {
         auto safe_response = std::make_shared<http::response<Body, Fields>>(std::move(response));
+        auto self = GetSharedThis();
         http::async_write(stream_, *safe_response,
-                          [safe_response, self = GetSharedThis()](beast::error_code ec, std::size_t bytes_written) {
+                          [safe_response, self](beast::error_code ec, std::size_t bytes_written) {
             self->OnWrite(safe_response->need_eof(), ec, bytes_written);
         });
     }

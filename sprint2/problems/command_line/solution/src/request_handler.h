@@ -90,9 +90,8 @@ using FileResponse = http::response<http::file_body>;
 class ApiRequestHandler : public std::enable_shared_from_this<ApiRequestHandler> {
 public:
 
-    explicit ApiRequestHandler(app::Application& app, Strand& strand, bool manual_update)
+    explicit ApiRequestHandler(app::Application& app, bool manual_update)
         : app_(app)
-        , strand_(strand)
         , manual_update_(manual_update) {
     }
 
@@ -101,17 +100,15 @@ public:
 
     template <typename Request, typename Send>
     void operator() (Request&& req, Send&& send) {
-        std::string_view target = req.target();
-        SendApiResponse(req, std::forward<Send>(send), target);
+        SendApiResponse(std::forward<Request>(req), std::forward<Send>(send), req.target());
     }
 
 private:
     app::Application& app_;
-    Strand& strand_;
     bool manual_update_;
 
     template <typename Request, typename Send>
-    void SendApiResponse(Request& req, Send&& send, std::string_view target) {
+    void SendApiResponse(Request&& req, Send&& send, std::string_view target) {
         using namespace std::literals;
 
         StringResponse response;
@@ -144,10 +141,7 @@ private:
             } else if (target.substr(0, 17) == "/api/v1/game/join"sv) {
                 switch (req.method()) {
                     case http::verb::post:
-                        net::dispatch(strand_, [self = shared_from_this(), &req, &response] {
-                            assert(self->strand_.running_in_this_thread());
-                            self->ProcessApiJoin(req, response);
-                        });
+                        ProcessApiJoin(req, response);
                         break;
                     default:
                         MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::invalid_method_post,
@@ -168,10 +162,7 @@ private:
             } else if (target.substr(0, 26) == "/api/v1/game/player/action"sv) {
                 switch (req.method()) {
                     case http::verb::post:
-                        net::dispatch(strand_, [self = shared_from_this(), &req, &response] () {
-                            assert(self->strand_.running_in_this_thread());
-                            self->ProcessApiAction(req, response);
-                        });
+                        ProcessApiAction(req, response);
                         break;
 
                     default:
@@ -183,10 +174,7 @@ private:
                 switch (req.method()) {
                     case http::verb::post:
                         if (manual_update_) {
-                            net::dispatch(strand_, [self = shared_from_this(), &req, &response] () {
-                                assert(self->strand_.running_in_this_thread());
-                                self->ProcessApiTick(req, response);
-                            });
+                            ProcessApiTick(req, response);
                         } else {
                             MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::bad_request,
                                                  "Invalid endpoint"sv);
@@ -207,9 +195,7 @@ private:
                                  "Uknown error"sv);
         }
 
-        net::dispatch(strand_, [&response, &send] () {
-            send(response);
-        });
+        send(response);
     }
 
     void ProcessApiMaps(StringResponse& response, std::string_view target) const;
@@ -472,7 +458,7 @@ public:
                             std::filesystem::path&& static_files_path, bool manual_update)
         : ioc_(ioc)
         , api_strand_(api_strand)
-        , api_handler_(std::make_shared<ApiRequestHandler>(app, api_strand, manual_update))
+        , api_handler_(std::make_shared<ApiRequestHandler>(app, manual_update))
         , static_handler_(std::move(fs::canonical(static_files_path))) {
     }
 
@@ -485,13 +471,13 @@ public:
 
         std::string_view target = req.target();
         if (target.size() >= 4 && target.substr(0, 5) == "/api/"sv) {
-            net::dispatch(ioc_, [self = shared_from_this(), &req, &send] {
-                (*self->api_handler_)(std::forward<decltype(req)>(req), std::forward<Send>(send));
+            net::dispatch(api_strand_, [self = shared_from_this(),
+                                       req = std::forward<decltype(req)>(req),
+                                       send = std::forward<Send>(send)]() {
+                (*self->api_handler_)(req, send);
             });
         } else {
-            net::dispatch(ioc_, [self = shared_from_this(), &req, &send] {
-                (self->static_handler_)(std::forward<decltype(req)>(req), std::forward<Send>(send));
-            });
+            static_handler_(std::forward<decltype(req)>(req), std::forward<Send>(send));
         }
     }
 

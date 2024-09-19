@@ -94,9 +94,7 @@ int main(int argc, const char* argv[]) {
         // 5. Запустить обработчик HTTP-запросов, делегируя их обработчику запросов
         const auto address = net::ip::make_address("0.0.0.0");
         constexpr net::ip::port_type port = 8080;
-        http_server::ServeHttp(ioc, {address, port}, [&logging_handler](auto&& req, auto client_ip, auto&& send) {
-            logging_handler(std::forward<decltype(req)>(req), client_ip, std::forward<decltype(send)>(send));
-        });
+        http_server::ServeHttp(ioc, {address, port}, logging_handler);
 
         // Эта надпись сообщает тестам о том, что сервер запущен и готов обрабатывать запросы
         http_logger::LogServerStart(port, address.to_string());
