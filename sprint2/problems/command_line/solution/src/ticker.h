@@ -12,7 +12,7 @@ namespace tick {
 namespace net = boost::asio;
 namespace sys = boost::system;
 
-class Ticker : std::enable_shared_from_this<Ticker> {
+class Ticker : public std::enable_shared_from_this<Ticker> {
 public:
     using Strand = net::strand<net::io_context::executor_type>;
     using Handler = std::function<void(std::chrono::milliseconds delta)>;
