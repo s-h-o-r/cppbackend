@@ -171,6 +171,12 @@ DogPoint Map::GetRandomDogPoint() const {
     }
 }
 
+DogPoint Map::GetDefaultSpawnPoint() const {
+    Point first_road_start = roads_.front().GetStart();
+    return {static_cast<DogCoord>(first_road_start.x),
+            static_cast<DogCoord>(first_road_start.y)};
+}
+
 const Road* Map::GetVerticalRoad(DogPoint dog_point) const {
     Point map_point = dog_point.ConvertToMapPoint();
     
@@ -265,7 +271,13 @@ Dog* GameSession::AddDog(std::string_view name) {
 
     Speed default_speed = {0, 0};
 
-    Point start_point = map_->GetRoads().front().GetStart();
+    DogPoint start_point;
+    if (random_dog_spawn_) {
+        start_point = map_->GetRandomDogPoint();
+    } else {
+        start_point = map_->GetDefaultSpawnPoint();
+    }
+
     model::DogPoint dog_pos = {static_cast<DogCoord>(start_point.x),
                                 static_cast<DogCoord>(start_point.y)}; // map_->GetRandomDogPoint();
 
@@ -439,7 +451,7 @@ const Map* Game::FindMap(const Map::Id& id) const noexcept {
 
 GameSession& Game::StartGameSession(const Map* map) {
     if (sessions_[map->GetId()].empty()) {
-        sessions_[map->GetId()].push_back(std::make_shared<GameSession>(map));
+        sessions_[map->GetId()].push_back(std::make_shared<GameSession>(map, random_dog_spawn_));
     }
     return *sessions_[map->GetId()].back();
 }
@@ -449,6 +461,14 @@ GameSession* Game::GetGameSession(Map::Id map_id) {
         return nullptr;
     }
     return sessions_[map_id].back().get();
+}
+
+void Game::TurnOnRandomSpawn() {
+    random_dog_spawn_ = true;
+}
+
+void Game::TurnOffRandomSpawn() {
+    random_dog_spawn_ = false;
 }
 
 void Game::SetDogSpeed(Velocity default_speed) {

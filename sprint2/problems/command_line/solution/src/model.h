@@ -172,6 +172,7 @@ public:
     void AddOffice(Office&& office);
 
     DogPoint GetRandomDogPoint() const;
+    DogPoint GetDefaultSpawnPoint() const;
 
     const Road* GetVerticalRoad(DogPoint dog_point) const;
     const Road* GetHorizontalRoad(DogPoint dog_point) const;
@@ -243,8 +244,9 @@ public:
     using DogIdHasher = util::TaggedHasher<Dog::Id>;
     using IdToDogIndex = std::map<Dog::Id, std::shared_ptr<Dog>>;
 
-    explicit GameSession(const Map* map)
-        : map_(map) {
+    explicit GameSession(const Map* map, bool random_dog_spawn)
+        : map_(map)
+        , random_dog_spawn_(random_dog_spawn) {
             if (map == nullptr) {
                 throw std::runtime_error("Cannot open game session on empty map");
             }
@@ -263,6 +265,8 @@ public:
 private:
     const Map* map_;
     IdToDogIndex dogs_;
+
+    bool random_dog_spawn_ = false;
 
     std::atomic_int counter_{0};
 };
@@ -283,6 +287,9 @@ public:
      На данном этапе мы создаем в векторе только одну сессию и берем ее с конца вектора
      */
 
+    void TurnOnRandomSpawn();
+    void TurnOffRandomSpawn();
+    
     void SetDogSpeed(Velocity default_speed);
     Velocity GetDefaultGogSpeed() const noexcept;
 
@@ -297,6 +304,7 @@ private:
     MapIdToIndex map_id_to_index_;
 
     Velocity default_dog_speed_ = 1.;
+    bool random_dog_spawn_ = false;
 
     SessionsByMaps sessions_;
 };

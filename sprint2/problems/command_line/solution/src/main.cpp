@@ -7,9 +7,11 @@
 #include <thread>
 
 #include "app.h"
+#include "cl_parser.h"
 #include "json_loader.h"
 #include "logger.h"
 #include "request_handler.h"
+#include "ticker.h"
 
 using namespace std::literals;
 namespace net = boost::asio;
@@ -41,13 +43,24 @@ void RunWorkers(unsigned n, const Fn& fn) {
 }  // namespace
 
 int main(int argc, const char* argv[]) {
-    if (argc != 3) {
-        std::cerr << "Usage: game_server <game-config-json> <static-files-dir>"sv << std::endl;
+    cl_parser::Args cl_args;
+    try {
+        if (auto args = cl_parser::ParseComandLine(argc, argv)) {
+            cl_args = *args;
+        } else {
+            return 0;
+        }
+    } catch (const std::exception& ex) {
+        std::cerr << ex.what() << std::endl;
         return EXIT_FAILURE;
     }
+
     try {
         // 1. Загружаем карту из файла и построить модель игры
-        model::Game game = json_loader::LoadGame(argv[1]);
+        model::Game game = json_loader::LoadGame(cl_args.config_file_path);
+        if (cl_args.random_spawn_point) {
+            game.TurnOnRandomSpawn();
+        }
 
         // 2. Инициализируем io_context
         const unsigned num_threads = std::thread::hardware_concurrency();
@@ -65,17 +78,27 @@ int main(int argc, const char* argv[]) {
         app::Application app(&game);
         auto game_state_strand = net::make_strand(ioc);
 
-        auto handler = std::make_shared<http_handler::RequestHandler>(app, ioc, game_state_strand, argv[2]);
+        auto handler = std::make_shared<http_handler::RequestHandler>(app, ioc, game_state_strand,
+                                                                      std::move(cl_args.static_root), !(static_cast<bool>(cl_args.tick_period)));
+        http_logger::InitBoostLogFilter(http_logger::LogFormatter);
+        http_logger::LogginRequestHandler<http_handler::RequestHandler> logging_handler(*handler);
+
+        if (cl_args.tick_period != 0) {
+            auto tick_period = std::chrono::milliseconds{cl_args.tick_period};
+            auto ticker = std::make_shared<tick::Ticker>(game_state_strand, tick_period, [&app](std::chrono::milliseconds delta) {
+                app.ProcessTick(delta.count());
+            });
+            ticker->Start();
+        }
 
         // 5. Запустить обработчик HTTP-запросов, делегируя их обработчику запросов
         const auto address = net::ip::make_address("0.0.0.0");
         constexpr net::ip::port_type port = 8080;
-        http_server::ServeHttp(ioc, {address, port}, [handler](auto&& req, auto&& send) {
-            (*handler)(std::forward<decltype(req)>(req), std::forward<decltype(send)>(send));
+        http_server::ServeHttp(ioc, {address, port}, [&logging_handler](auto&& req, auto client_ip, auto&& send) {
+            logging_handler(std::forward<decltype(req)>(req), client_ip, std::forward<decltype(send)>(send));
         });
 
         // Эта надпись сообщает тестам о том, что сервер запущен и готов обрабатывать запросы
-        http_logger::InitBoostLogFilter(http_logger::LogFormatter);
         http_logger::LogServerStart(port, address.to_string());
 
         // 6. Запускаем обработку асинхронных операций

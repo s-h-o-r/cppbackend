@@ -49,29 +49,52 @@ void InitBoostLogFilter(Formatter&& formatter) {
     );
 }
 
-template <typename Request>
-void LogRequest(std::string_view client_ip, Request& request) {
-    boost::json::value data = {
-        {"ip", client_ip},
-        {"URI", request.target()},
-        {"method", http::to_string(request.method())}
-    };
-    BOOST_LOG_TRIVIAL(info) << logging::add_value(log_data, data) << "request received";
-}
+template<class RequestHandler>
+class LogginRequestHandler {
+public:
 
-template <typename Response>
-void LogResponse(long long time, Response& response) {
-    auto content_type = response[http::field::content_type];
-    if (content_type.empty()) {
-        content_type = "null";
+    explicit LogginRequestHandler(RequestHandler& request_handler)
+        : decorated_(request_handler) {
     }
-    boost::json::value data = {
-        {"response_time", time},
-        {"code", response.result_int()},
-        {"content_type", content_type}
-    };
-    BOOST_LOG_TRIVIAL(info) << logging::add_value(log_data, data) << "response sent";
-}
+
+    template <typename Request, typename Send>
+    void operator()(Request&& req, std::string_view client_ip, Send&& send) {
+        DurationMeasure dur;
+        LogRequest(client_ip, req);
+        decorated_(std::forward<decltype(req)>(req), [this, &send, &dur] (auto&& response) {
+            this->LogResponse(dur.Count(), response);
+            send(response);
+        });
+    }
+
+private:
+    RequestHandler& decorated_;
+
+    template <typename Request>
+    void LogRequest(std::string_view client_ip, Request& request) const {
+        boost::json::value data = {
+            {"ip", client_ip},
+            {"URI", request.target()},
+            {"method", http::to_string(request.method())}
+        };
+        BOOST_LOG_TRIVIAL(info) << logging::add_value(log_data, data) << "request received";
+    }
+
+    template <typename Response>
+    void LogResponse(long long time, Response& response) const {
+        auto content_type = response[http::field::content_type];
+        if (content_type.empty()) {
+            content_type = "null";
+        }
+        boost::json::value data = {
+            {"response_time", time},
+            {"code", response.result_int()},
+            {"content_type", content_type}
+        };
+        BOOST_LOG_TRIVIAL(info) << logging::add_value(log_data, data) << "response sent";
+    }
+};
+
 
 
 void LogServerStart(unsigned int port, std::string_view address);

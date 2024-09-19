@@ -233,10 +233,6 @@ void ApiRequestHandler::MakeErrorApiResponse(StringResponse& response, ApiReques
         }
 
         case ec::invalid_method_get_head:
-            response.set(http::field::cache_control, "no-cache");
-            [[fallthrough]];
-            
-        case ec::invalid_method_common:
         {
             response.result(http::status::method_not_allowed);
             json::value jv = {
@@ -300,18 +296,6 @@ void ApiRequestHandler::MakeErrorApiResponse(StringResponse& response, ApiReques
             json::value jv = {
                 {"code", "unknownToken"},
                 {"message", message}
-            };
-            response.body() = json::serialize(jv);
-            break;
-        }
-
-        case ec::unknown:
-        default:
-        {
-            response.result(http::status::unknown);
-            json::value jv = {
-                {"code", "unknownRequest"},
-                {"message", "Unknown request"}
             };
             response.body() = json::serialize(jv);
             break;
