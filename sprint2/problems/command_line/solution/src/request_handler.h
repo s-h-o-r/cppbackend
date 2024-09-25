@@ -410,7 +410,7 @@ public:
     void operator() (Request&& req, Send&& send) {
         try {
             std::string_view target = req.target();
-            SendStaticFile(req, std::forward<Send>(send), target);
+            SendStaticFile(std::forward<Request>(req), std::forward<Send>(send), target);
         } catch (...) {
             send(MakeErrorStaticFileResponse(http::status::unknown));
         }
@@ -420,7 +420,7 @@ private:
     std::filesystem::path static_files_path_;
 
     template <typename Request, typename Send>
-    void SendStaticFile(Request& req, Send&& send, std::string_view target) const {
+    void SendStaticFile(Request&& req, Send&& send, std::string_view target) const {
         FileResponse response;
         FillBasicInfo(req, response);
 

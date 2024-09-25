@@ -27,7 +27,7 @@ struct GetMapError {
 
 class GetMapUseCase {
 public:
-    GetMapUseCase(const model::Game* game)
+    explicit GetMapUseCase(const model::Game* game)
         : game_(game) {
     }
 
@@ -42,7 +42,7 @@ private:
 
 class ListMapsUseCase {
 public:
-    ListMapsUseCase(const model::Game* game)
+    explicit ListMapsUseCase(const model::Game* game)
         : game_(game) {
     }
 
@@ -136,7 +136,7 @@ private:
 
 class ProcessTickUseCase {
 public:
-    ProcessTickUseCase(model::Game* game)
+    explicit ProcessTickUseCase(model::Game* game)
         : game_(game) {
     }
 
@@ -151,7 +151,7 @@ private:
 
 class Application {
 public:
-    Application(model::Game* game)
+    explicit Application(model::Game* game)
         : game_(game) {
     }
 

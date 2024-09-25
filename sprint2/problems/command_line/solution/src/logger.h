@@ -99,6 +99,6 @@ private:
 
 
 void LogServerStart(unsigned int port, std::string_view address);
-void LogServerEnd(unsigned int code, std::string_view exeption_text);
-void LogServerError(unsigned int code, std::string_view message, std::string_view where);
+void LogServerEnd(unsigned int return_code, std::string_view exeption_text);
+void LogServerError(unsigned int error_code, std::string_view error_message, std::string_view where);
 } // namespace http_logger
