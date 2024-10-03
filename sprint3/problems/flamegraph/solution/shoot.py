@@ -1,3 +1,4 @@
+import sys
 import argparse
 import subprocess
 import time
@@ -48,21 +49,21 @@ def make_shots():
 
 
 def start_perf_record(pid):
-    perf_proc = run('perf record -p ' + pid + ' -o perf.data')
-    stop(perf_proc, wait=True)
-
-
-def start_flamegraf(stack_collapse-perf='./FlameGraph/stackcollapse-perf.pl', flamegraf_path='./FlameGraph/flamegraph.pl', file_out_name='graph.svg'):
-    flamegraph_proc = run('sudo perf script | ' + stack_collapse + ' | ' + flamegraf_path + ' > ' + file_out_name)
-    stop(perf_proc, wait=True)
+    perf_proc = run('sudo perf record -g -o perf.data -p ' + str(pid))
+    return perf_proc
 
 
 server = run(start_server())
-start_perf_record(server.pid())
-make_shots()
-stop(server)
+perf_proc = start_perf_record(server.pid)
 
-start_flamegraf()
+make_shots()
+
+stop(server)
+stop(perf_proc, wait=True)
+
+time.sleep(1)
+
+subprocess.Popen('sudo perf script -i perf.data | ./FlameGraph/stackcollapse-perf.pl | ./FlameGraph/flamegraph.pl > graph.svg', shell=True)
 
 time.sleep(1)
 print('Job done')
