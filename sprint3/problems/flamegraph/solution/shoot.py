@@ -1,3 +1,4 @@
+import sys
 import argparse
 import subprocess
 import time
@@ -24,6 +25,7 @@ def start_server():
 
 
 def run(command, output=None):
+    print(command) #just to check the path
     process = subprocess.Popen(shlex.split(command), stdout=output, stderr=subprocess.DEVNULL)
     return process
 
@@ -47,20 +49,21 @@ def make_shots():
     print('Shooting complete')
 
 
-print(start_server())
-server = run(start_server())
+def start_perf_record(pid):
+    perf_proc = run('sudo perf record -g -o perf.data -p ' + str(pid))
+    return perf_proc
 
-record = run('sudo perf record -g -p' + str(server.pid) + ' -o perf.data ')
+server = run(start_server())
+perf_proc = start_perf_record(server.pid)
 
 make_shots()
+
 stop(server)
+stop(perf_proc, wait=True)
 
 time.sleep(1)
 
-p1 = subprocess.Popen(shlex.split("perf script -i perf.data"), stdout=subprocess.PIPE)
-p2 = subprocess.Popen(shlex.split("./FlameGraph/stackcollapse-perf.pl"), stdin=p1.stdout, stdout=subprocess.PIPE)
-with open("graph.svg", "w") as f:
-    p3 = subprocess.Popen(shlex.split("./FlameGraph/flamegraph.pl"), stdin=p2.stdout, stdout=f)
-p3.wait()
+subprocess.Popen('sudo perf script -i perf.data | ./FlameGraph/stackcollapse-perf.pl | ./FlameGraph/flamegraph.pl > graph.svg', shell=True)
 
+time.sleep(1)
 print('Job done')

@@ -17,13 +17,22 @@ namespace {
 template <typename Fn>
 void RunWorkers(unsigned n, const Fn& fn) {
     n = std::max(1u, n);
+    #ifndef __clang__
     std::vector<std::jthread> workers;
+    #else
+    std::vector<std::thread> workers;
+    #endif
     workers.reserve(n - 1);
     // Запускаем n-1 рабочих потоков, выполняющих функцию fn
     while (--n) {
         workers.emplace_back(fn);
     }
     fn();
+    #ifdef __clang__
+    for (auto& worker : workers) {
+        worker.join();
+    }
+    #endif
 }
 
 }  // namespace

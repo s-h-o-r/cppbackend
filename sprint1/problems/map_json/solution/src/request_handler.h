@@ -1,7 +1,5 @@
 #pragma once
 
-#define BOOST_BEAST_USE_STD_STRING_VIEW
-
 #include <boost/json.hpp>
 
 #include "http_server.h"
