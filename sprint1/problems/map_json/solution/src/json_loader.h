@@ -1,6 +1,6 @@
 #pragma once
 
-#define BOOST_BEAST_USE_STD_STRING_VIEW
+#define BOOST_BEAST_USE_
 
 #include <boost/json.hpp>
 #include <filesystem>
