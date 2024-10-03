@@ -25,6 +25,7 @@ def start_server():
 
 
 def run(command, output=None):
+    print(command) #just to check the path
     process = subprocess.Popen(shlex.split(command), stdout=output, stderr=subprocess.DEVNULL)
     return process
 
@@ -52,10 +53,8 @@ def start_perf_record(pid):
     perf_proc = run('sudo perf record -g -o perf.data -p ' + str(pid))
     return perf_proc
 
-print(start_server()) #just to check the path
 server = run(start_server())
 perf_proc = start_perf_record(server.pid)
-print('recording has been started')
 
 make_shots()
 
@@ -65,7 +64,6 @@ stop(perf_proc, wait=True)
 time.sleep(1)
 
 subprocess.Popen('sudo perf script -i perf.data | ./FlameGraph/stackcollapse-perf.pl | ./FlameGraph/flamegraph.pl > graph.svg', shell=True)
-print('pipe is running')
 
 time.sleep(1)
 print('Job done')
