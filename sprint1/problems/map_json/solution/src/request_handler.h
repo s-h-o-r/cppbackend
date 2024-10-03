@@ -5,6 +5,8 @@
 #include "http_server.h"
 #include "model.h"
 
+#define BOOST_BEAST_USE_STD_STRING_VIEW
+
 namespace beast = boost::beast;
 namespace http = beast::http;
 namespace json = boost::json;
