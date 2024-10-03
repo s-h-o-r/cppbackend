@@ -1,7 +1,5 @@
 #pragma once
 
-#define BOOST_BEAST_USE_
-
 #include <boost/json.hpp>
 #include <filesystem>
 
@@ -10,7 +8,7 @@
 namespace json = boost::json;
 
 namespace json_loader {
-s
+
 model::Road PrepareRoad(json::object& road_info);
 
 model::Building PrepareBuilding(json::object& building_info);
