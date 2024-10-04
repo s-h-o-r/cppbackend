@@ -50,7 +50,7 @@ def make_shots():
 
 
 def start_perf_record(pid):
-    perf_proc = run('sudo perf record -g -o perf.data -p ' + str(pid))
+    perf_proc = run('perf record -g -o perf.data -p ' + str(pid))
     return perf_proc
 
 server = run(start_server())
