@@ -50,7 +50,7 @@ def make_shots():
 
 
 def start_perf_record(pid):
-    perf_proc = run('perf record -g -o perf.data -p ' + str(pid))
+    perf_proc = run('perf record -g -o ./perf.data -p ' + str(pid))
     return perf_proc
 
 server = run(start_server())
@@ -63,7 +63,7 @@ stop(perf_proc, wait=True)
 
 time.sleep(1)
 
-subprocess.Popen('sudo perf script -i perf.data | ./FlameGraph/stackcollapse-perf.pl | ./FlameGraph/flamegraph.pl > graph.svg', shell=True)
+subprocess.Popen('sudo perf script -i ./perf.data | ./FlameGraph/stackcollapse-perf.pl | ./FlameGraph/flamegraph.pl > graph.svg', shell=True)
 
 time.sleep(1)
 print('Job done')
