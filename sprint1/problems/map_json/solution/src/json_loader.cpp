@@ -11,52 +11,52 @@ using namespace std::literals;
 namespace sys = boost::system;
 
 model::Road PrepareRoad(json::object& road_info) {
-    model::Point start{json::value_to<model::Coord>(road_info.at("x0")),
-        json::value_to<model::Coord>(road_info.at("y0"))};
-    if (road_info.if_contains("x1")) {
+    model::Point start{json::value_to<model::Coord>(road_info.at("x0"s)),
+        json::value_to<model::Coord>(road_info.at("y0"s))};
+    if (road_info.if_contains("x1"s)) {
         return model::Road(model::Road::HORIZONTAL, start,
-                           json::value_to<model::Coord>(road_info.at("x1")));
+                           json::value_to<model::Coord>(road_info.at("x1"s)));
     } else {
         return model::Road(model::Road::VERTICAL, start,
-                           json::value_to<model::Coord>(road_info.at("y1")));
+                           json::value_to<model::Coord>(road_info.at("y1"s)));
     }
 }
 
 model::Building PrepareBuilding(json::object& building_info) {
-    model::Point point{json::value_to<model::Coord>(building_info.at("x")),
-        json::value_to<model::Coord>(building_info.at("y"))};
-    model::Size size{json::value_to<model::Dimension>(building_info.at("w")),
-        json::value_to<model::Dimension>(building_info.at("h"))};
+    model::Point point{json::value_to<model::Coord>(building_info.at("x"s)),
+        json::value_to<model::Coord>(building_info.at("y"s))};
+    model::Size size{json::value_to<model::Dimension>(building_info.at("w"s)),
+        json::value_to<model::Dimension>(building_info.at("h"s))};
 
     return model::Building{{point, size}};
 }
 
 model::Office PrepareOffice(json::object& office_info) {
-    model::Point point{json::value_to<model::Coord>(office_info.at("x")),
-        json::value_to<model::Coord>(office_info.at("y"))};
-    model::Offset offset{json::value_to<model::Coord>(office_info.at("offsetX")),
-        json::value_to<model::Coord>(office_info.at("offsetY"))};
+    model::Point point{json::value_to<model::Coord>(office_info.at("x"s)),
+        json::value_to<model::Coord>(office_info.at("y"s))};
+    model::Offset offset{json::value_to<model::Coord>(office_info.at("offsetX"s)),
+        json::value_to<model::Coord>(office_info.at("offsetY"s))};
 
-    std::string id_str(json::value_to<std::string>(office_info.at("id")));
+    std::string id_str(json::value_to<std::string>(office_info.at("id"s)));
 
     return {model::Office::Id{id_str}, point, offset};
 }
 
 model::Map PrepareMap(json::object& map_info) {
-    model::Map map(model::Map::Id(json::value_to<std::string>(map_info.at("id"))),
-                   json::value_to<std::string>(map_info.at("name")));
+    model::Map map(model::Map::Id(json::value_to<std::string>(map_info.at("id"s))),
+                   json::value_to<std::string>(map_info.at("name"s)));
 
-    json::array roads = map_info.at("roads").as_array();
+    json::array roads = map_info.at("roads"s).as_array();
     for (auto it = roads.begin(); it != roads.end(); ++it) {
         map.AddRoad(PrepareRoad(it->as_object()));
     }
 
-    json::array buildings = map_info.at("buildings").as_array();
+    json::array buildings = map_info.at("buildings"s).as_array();
     for (auto it = buildings.begin(); it != buildings.end(); ++it) {
         map.AddBuilding(PrepareBuilding(it->as_object()));
     }
 
-    json::array offices = map_info.at("offices").as_array();
+    json::array offices = map_info.at("offices"s).as_array();
     for (auto it = offices.begin(); it != offices.end(); ++it) {
         map.AddOffice(PrepareOffice(it->as_object()));
     }
@@ -72,7 +72,7 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
 
     std::ifstream json(json_path);
     if (!json.is_open()) {
-        throw std::runtime_error("Cannot open the file.");
+        throw std::runtime_error("Cannot open the file."s);
     }
 
     std::string json_data((std::istreambuf_iterator<char>(json)),
@@ -82,7 +82,7 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
 
     json::value game_info{json::parse(json_data, ec)};
 
-    json::array& maps = game_info.as_object().at("maps").as_array();
+    json::array& maps = game_info.as_object().at("maps"s).as_array();
 
     for (auto it = maps.begin(); it != maps.end(); ++it) {
         game.AddMap(PrepareMap(it->as_object()));
