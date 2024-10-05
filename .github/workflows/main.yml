@@ -42,6 +42,11 @@ jobs:
 
 #      - run: chmod +x ${GITHUB_WORKSPACE}/sprint1/problems/map_json/solution/build/bin/game_server
 
+      - name: run tests sprint1 map_json
+        run: |
+          cd cpp-backend-tests-practicum/scripts/sprint1
+          ./map_json/run.sh
+
       - name: Load FlameGraph
         uses: actions/checkout@v3
         with:
