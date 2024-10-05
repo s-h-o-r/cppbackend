@@ -63,7 +63,9 @@ stop(perf_proc, wait=True)
 
 time.sleep(1)
 
-subprocess.Popen('sudo perf script -i ./perf.data | ./FlameGraph/stackcollapse-perf.pl | ./FlameGraph/flamegraph.pl > graph.svg', shell=True)
+flame = subprocess.Popen('sudo perf script -i ./perf.data | ./FlameGraph/stackcollapse-perf.pl | ./FlameGraph/flamegraph.pl > graph.svg', shell=True)
+
+stop(flame, wait=True)
 
 time.sleep(1)
 print('Job done')
