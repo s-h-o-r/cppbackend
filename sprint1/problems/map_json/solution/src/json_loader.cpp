@@ -89,21 +89,11 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
         throw std::logic_error(ec.what());
     }
 
-    /*
-    json::array maps = game_info.at("maps"s).as_array();
-    std::cout << "Maps"sv << std::endl;
-*/
+    json::array maps = game_info.at(0).at("maps"s).as_array();
 
-    for (const auto& map : game_info.at("maps").as_array())
-    {
-        game.AddMap(PrepareMap(map.as_object()));
-    }
-
-    /*
     for (auto it = maps.begin(); it != maps.end(); ++it) {
         game.AddMap(PrepareMap(it->as_object()));
     }
-*/
     return game;
 }
 
