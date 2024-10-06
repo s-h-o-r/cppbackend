@@ -42,7 +42,7 @@ model::Office PrepareOffice(json::object& office_info) {
     return {model::Office::Id{id_str}, point, offset};
 }
 
-model::Map PrepareMap(json::object& map_info) {
+model::Map PrepareMap(const json::object& map_info) {
     model::Map map(model::Map::Id(json::value_to<std::string>(map_info.at("id"s))),
                    json::value_to<std::string>(map_info.at("name"s)));
 
@@ -94,7 +94,7 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
     std::cout << "Maps"sv << std::endl;
 */
 
-    for (auto& map : game_info.at("maps").as_array())
+    for (const auto& map : game_info.at("maps").as_array())
     {
         game.AddMap(PrepareMap(map.as_object()));
     }
