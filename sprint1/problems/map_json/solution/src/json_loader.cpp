@@ -81,6 +81,8 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
     std::string json_data((std::istreambuf_iterator<char>(json)),
                           std::istreambuf_iterator<char>());
 
+    std::cout << json_data << std::endl;
+
     sys::error_code ec;
 
     json::value game_info{json::parse(json_data, ec)};
