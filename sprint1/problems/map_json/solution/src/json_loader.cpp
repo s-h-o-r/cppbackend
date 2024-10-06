@@ -91,18 +91,7 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
         throw std::logic_error(ec.what());
     }
 
-    if (game_info.is_null()) {
-        std::cout << "Null"sv << std::endl;
-    } else if (game_info.is_array()) {
-        std::cout << "Array"sv << std::endl;
-    } else if (game_info.is_object()) {
-        std::cout << "Object"sv << std::endl;
-    } else if (game_info.is_primitive()) {
-        std::cout << "Primitive"sv << std::endl;
-    }
-
-    std::cout << "Before Maps"sv << std::endl;
-    json::array maps = game_info.as_object().at("maps"s).as_array();
+    json::array maps = game_info.as_array().at("maps"s).as_array();
     std::cout << "Maps"sv << std::endl;
 
     for (auto it = maps.begin(); it != maps.end(); ++it) {
