@@ -85,7 +85,12 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
 
     json::value game_info{json::parse(json_data, ec)};
 
-    json::array& maps = game_info.as_object().at("maps"s).as_array();
+    if (ec) {
+        throw std::logic_error(ec.what());
+    }
+
+    std::cout << "Before Maps"sv << std::endl;
+    json::array maps = game_info.as_object().at("maps"s).as_array();
     std::cout << "Maps"sv << std::endl;
 
     for (auto it = maps.begin(); it != maps.end(); ++it) {
