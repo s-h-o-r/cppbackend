@@ -47,16 +47,19 @@ model::Map PrepareMap(json::object& map_info) {
                    json::value_to<std::string>(map_info.at("name"s)));
 
     json::array roads = map_info.at("roads"s).as_array();
+    std::cout << "Roads"sv << std::endl;
     for (auto it = roads.begin(); it != roads.end(); ++it) {
         map.AddRoad(PrepareRoad(it->as_object()));
     }
 
     json::array buildings = map_info.at("buildings"s).as_array();
+    std::cout << "Buildings"sv << std::endl;
     for (auto it = buildings.begin(); it != buildings.end(); ++it) {
         map.AddBuilding(PrepareBuilding(it->as_object()));
     }
 
     json::array offices = map_info.at("offices"s).as_array();
+    std::cout << "Offices"sv << std::endl;
     for (auto it = offices.begin(); it != offices.end(); ++it) {
         map.AddOffice(PrepareOffice(it->as_object()));
     }
@@ -83,6 +86,7 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
     json::value game_info{json::parse(json_data, ec)};
 
     json::array& maps = game_info.as_object().at("maps"s).as_array();
+    std::cout << "Maps"sv << std::endl;
 
     for (auto it = maps.begin(); it != maps.end(); ++it) {
         game.AddMap(PrepareMap(it->as_object()));
