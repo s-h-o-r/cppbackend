@@ -94,7 +94,7 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
     std::cout << "Maps"sv << std::endl;
 */
 
-    for (const auto& map : game_info.at("maps").as_array())
+    for (auto& map : game_info.at("maps").as_array())
     {
         game.AddMap(PrepareMap(map.as_object()));
     }
