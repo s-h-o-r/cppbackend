@@ -81,8 +81,6 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
     std::string json_data((std::istreambuf_iterator<char>(json)),
                           std::istreambuf_iterator<char>());
 
-    std::cout << json_data << std::endl;
-
     sys::error_code ec;
 
     json::value game_info{json::parse(json_data, ec)};
@@ -91,10 +89,7 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
         throw std::logic_error(ec.what());
     }
 
-    std::cout << json::serialize(game_info.as_array()) << std::endl;
-
-
-    json::array maps = game_info.as_object().at("maps"s).as_array();
+    json::array maps = game_info.as.array().as_object().at("maps"s).as_array();
     std::cout << "Maps"sv << std::endl;
 
     for (auto it = maps.begin(); it != maps.end(); ++it) {
