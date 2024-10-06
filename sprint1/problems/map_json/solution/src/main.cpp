@@ -43,13 +43,16 @@ int main(int argc, const char* argv[]) {
         return EXIT_FAILURE;
     }
     try {
+        std::cout << "Step 1: "sv << __LINE__ << std::endl;
         // 1. Загружаем карту из файла и построить модель игры
         model::Game game = json_loader::LoadGame(argv[1]);
 
+        std::cout << "Step 2: "sv << __LINE__ << std::endl;
         // 2. Инициализируем io_context
         const unsigned num_threads = std::thread::hardware_concurrency();
         net::io_context ioc(num_threads);
 
+        std::cout << "Step 3: "sv << __LINE__ << std::endl;
         // 3. Добавляем асинхронный обработчик сигналов SIGINT и SIGTERM
         net::signal_set signals(ioc, SIGINT, SIGTERM);
         signals.async_wait([&ioc](const boost::system::error_code& ec, [[maybe_unused]] int signal_number) {
@@ -58,9 +61,12 @@ int main(int argc, const char* argv[]) {
             }
         });
 
+        std::cout << "Step 4: "sv << __LINE__ << std::endl;
         // 4. Создаём обработчик HTTP-запросов и связываем его с моделью игры
         http_handler::RequestHandler handler{game};
 
+
+        std::cout << "Step 5: "sv << __LINE__ << std::endl;
         // 5. Запустить обработчик HTTP-запросов, делегируя их обработчику запросов
         const auto address = net::ip::make_address("0.0.0.0");
         constexpr net::ip::port_type port = 8080;
@@ -70,7 +76,8 @@ int main(int argc, const char* argv[]) {
 
         // Эта надпись сообщает тестам о том, что сервер запущен и готов обрабатывать запросы
         std::cout << "Server has started"sv << std::endl;
-        
+
+        std::cout << "Step 6: "sv << __LINE__ << std::endl;
         // 6. Запускаем обработку асинхронных операций
         RunWorkers(std::max(1u, num_threads), [&ioc] {
             ioc.run();
