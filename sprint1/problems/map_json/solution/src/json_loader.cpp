@@ -89,7 +89,9 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
         throw std::logic_error(ec.what());
     }
 
-    json::array maps = game_info.as_array().at(0).as_object().at("maps"s).as_array();
+    json::object json_obj = game_info.as_object();
+
+    json::array maps = json_obj.at("maps"s).as_array();
     std::cout << "Maps"sv << std::endl;
 
     for (auto it = maps.begin(); it != maps.end(); ++it) {
