@@ -13,33 +13,6 @@ permissions:
 
 
 jobs:
-  sprint_1:
-    runs-on: ubuntu-22.04
-    container:
-      image: praktikumcpp/practicum_cpp_backend:latest
-      volumes:
-        - /var/run/docker.sock:/var/run/docker.sock
-      options: --name main-container
-    steps:
-      - name: get docker network
-        run: echo "DOCKER_NETWORK=$(docker inspect main-container -f '{{range $k, $v := .NetworkSettings.Networks}}{{printf "%s" $k}}{{end}}')" >> $GITHUB_ENV
-
-      - name: Checkout code & tests
-        uses: actions/checkout@v3
-        with:
-          submodules: true
-
-      - name: Install dependencies
-        run: |
-          pip uninstall conan -y
-          pip install -U conan==1.59.0
-          cp -R /home/forconan/.conan /github/home/.conan
-
-      - name: run tests sprint1 map_json
-        run: |
-          cd cpp-backend-tests-practicum/scripts/sprint1
-          ./map_json/run.sh
-
   sprint_3:
     runs-on: ubuntu-22.04
     steps:
@@ -157,3 +130,45 @@ jobs:
         if: always()
         with:
           junit_files: ${{ github.workspace }}/*.xml
+
+  sprint_3_with_server:
+    runs-on: ubuntu-22.04
+    container:
+      image: praktikumcpp/practicum_cpp_backend_server:latest
+      options: --privileged
+    services:
+      cppserver:
+        image: praktikumcpp/game_server:latest
+        ports:
+          - 8080:8080
+    steps:
+
+      - name: Checkout code & tests
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: run tests sprint3 ammo
+        run: |
+          cd cpp-backend-tests-practicum/scripts/sprint3
+          ./ammo/run_ci.sh
+
+      - name: run tests sprint3 load
+        run: |
+          cd cpp-backend-tests-practicum/scripts/sprint3
+          ./load/run_ci.sh
+
+      - name: run tests sprint3 stress
+        run: |
+          cd sprint3/problems/stress/solution
+          yandex-tank -c ${GITHUB_WORKSPACE}/sprint3/problems/stress/solution/load.yaml ${GITHUB_WORKSPACE}/sprint3/problems/stress/solution/ammo.txt
+          pytest --junitxml=${GITHUB_WORKSPACE}/stress.xml ${GITHUB_WORKSPACE}/cpp-backend-tests-practicum/tests/test_s03_stress.py
+        env:
+          DIRECTORY: ${{ github.workspace }}/sprint3/problems/stress/solution/logs
+
+      - name: Publish XML reports
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          junit_files: ${{ github.workspace }}/*.xml
+
