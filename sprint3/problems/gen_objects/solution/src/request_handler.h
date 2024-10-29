@@ -266,6 +266,7 @@ private:
             const auto& players = self->app_.ListPlayers(token);
 
             json::object game_state_json;
+            game_state_json["players"].emplace_object();
 
             for (const auto& [id, player] : players) {
                 const model::DogPoint& pos = player->GetPosition();
@@ -278,6 +279,7 @@ private:
                 });
             }
 
+            game_state_json["lostObjects"].emplace_object();
             for (const auto& [loot_type, loot_point] : self->app_.GetPlayerGameSession(token)->GetAllLoot()) {
                 game_state_json["lostObjects"].as_object().insert({
                     {"type", loot_type},
