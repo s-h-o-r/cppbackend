@@ -36,6 +36,8 @@ add_executable(game_server
     src/ticker.cpp
     src/loot_generator.h
     src/loot_generator.cpp
+    src/extra_data.h
+    src/extra_data.cpp
 )
 
 add_executable(game_server_tests
@@ -43,8 +45,12 @@ add_executable(game_server_tests
     src/tagged.h
     src/model.h
     src/model.cpp
+    src/json_loader.h
+    src/json_loader.cpp
     src/loot_generator.h
     src/loot_generator.cpp
+    src/extra_data.h
+    src/extra_data.cpp
 )
 
 target_include_directories(game_server PRIVATE CONAN_PKG::boost)

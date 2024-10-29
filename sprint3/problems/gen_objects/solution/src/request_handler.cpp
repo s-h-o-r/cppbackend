@@ -1,5 +1,11 @@
 #include "request_handler.h"
 
+namespace extra_data {
+void tag_invoke(json::value_from_tag, json::value& jv, const LootType& loot_type) {
+    jv = {loot_type.loot_info};
+}
+} // namespace extra_data
+
 namespace model {
 
 namespace json = boost::json;
@@ -35,14 +41,14 @@ void tag_invoke(json::value_from_tag, json::value& jv, const model::Road& road) 
     }
 }
 
-
 void tag_invoke(json::value_from_tag, json::value& jv, const model::Map& map) {
     jv = {
         {"id", *map.GetId()},
         {"name", map.GetName()},
         {"roads", json::value_from(map.GetRoads())},
         {"buildings", json::value_from(map.GetBuildings())},
-        {"offices", json::value_from(map.GetOffices())}
+        {"offices", json::value_from(map.GetOffices())},
+        {"lootTypes", json::value_from(map.GetLootTypes())}
     };
 }
 } // namespace model

@@ -14,6 +14,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include "extra_data.h"
+#include "loot_generator.h"
 #include "tagged.h"
 
 namespace detail {
@@ -165,13 +167,15 @@ public:
     const Buildings& GetBuildings() const noexcept;
     const Roads& GetRoads() const noexcept;
     const Offices& GetOffices() const noexcept;
+    const std::vector<extra_data::LootType>& GetLootTypes() const noexcept;
 
     void SetDogSpeed(Velocity speed);
     void AddRoad(Road&& road);
     void AddBuilding(Building&& building);
     void AddOffice(Office&& office);
+    void AddLootType(extra_data::LootType&& loot_type);
 
-    DogPoint GetRandomDogPoint() const;
+    DogPoint GetRandomPoint() const;
     DogPoint GetDefaultSpawnPoint() const;
 
     const Road* GetVerticalRoad(DogPoint dog_point) const;
@@ -197,6 +201,8 @@ private:
 
     OfficeIdToIndex warehouse_id_to_index_;
     Offices offices_;
+
+    std::vector<extra_data::LootType> loot_types_;
 };
 
 namespace net = boost::asio;
@@ -238,15 +244,28 @@ private:
     static inline std::uint32_t next_dog_id = 0;
 };
 
+using LootPoint = DogPoint;
+
+struct Loot {
+    std::uint8_t type;
+    LootPoint point;
+};
+
+struct LootConfig {
+    double period = 0.;
+    double probability = 0.;
+};
+
 class GameSession {
 public:
     using Id = util::Tagged<std::uint64_t, GameSession>;
     using DogIdHasher = util::TaggedHasher<Dog::Id>;
     using IdToDogIndex = std::map<Dog::Id, std::shared_ptr<Dog>>;
 
-    explicit GameSession(const Map* map, bool random_dog_spawn)
+    explicit GameSession(const Map* map, bool random_dog_spawn, loot_gen::LootGenerator&& loot_generator)
         : map_(map)
-        , random_dog_spawn_(random_dog_spawn) {
+        , random_dog_spawn_(random_dog_spawn)
+        , loot_generator_(std::move(loot_generator)) {
             if (map == nullptr) {
                 throw std::runtime_error("Cannot open game session on empty map");
             }
@@ -259,6 +278,7 @@ public:
     const model::Map* GetMap() const;
     Dog* AddDog(std::string_view name);
     const IdToDogIndex& GetDogs() const;
+    const std::vector<Loot>& GetAllLoot() const;
 
     void UpdateState(std::int64_t tick);
 
@@ -268,7 +288,13 @@ private:
 
     bool random_dog_spawn_ = false;
 
+    std::vector<Loot> loot_;
+    loot_gen::LootGenerator loot_generator_;
+
     std::atomic_int counter_{0};
+
+    void UpdateDogsState(std::int64_t tick);
+    void GenerateLoot(std::int64_t tick);
 };
 
 class Game {
@@ -293,6 +319,9 @@ public:
     void SetDogSpeed(Velocity default_speed);
     Velocity GetDefaultGogSpeed() const noexcept;
 
+    void SetLootConfig(double period, double probability);
+    const LootConfig& GetLootConfig() const;
+
     void UpdateState(std::int64_t tick);
 
 private:
@@ -305,6 +334,8 @@ private:
 
     Velocity default_dog_speed_ = 1.;
     bool random_dog_spawn_ = false;
+
+    LootConfig loot_config_;
 
     SessionsByMaps sessions_;
 };

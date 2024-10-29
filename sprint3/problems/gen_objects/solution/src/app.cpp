@@ -32,7 +32,7 @@ std::string ListPlayersError::what() const {
     throw std::runtime_error("Unknown ListPlayersError");
 }
 
-const model::GameSession::IdToDogIndex& ListPlayersUseCase::GetPlayersList(std::string_view token) const {
+const model::GameSession::IdToDogIndex& GetPlayersInfoUseCase::GetPlayersList(std::string_view token) const {
     const user::Player* player = tokens_->FindPlayerByToken(user::Token{std::string(token)});
     if (player == nullptr) {
         throw ListPlayersError{ListPlayersErrorReason::unknownToken};
@@ -40,6 +40,9 @@ const model::GameSession::IdToDogIndex& ListPlayersUseCase::GetPlayersList(std::
     return player->GetGameSession()->GetDogs();
 }
 
+const model::GameSession* GetPlayersInfoUseCase::GetPlayerGameSession(std::string_view token) const {
+    return tokens_->FindPlayerByToken(user::Token{std::string(token)})->GetGameSession();
+}
 
 std::string JoinGameError::what() const {
     switch (reason) {
@@ -115,8 +118,12 @@ const model::Map* Application::FindMap(model::Map::Id map_id) const {
     return get_map_use_case_.GetMap(map_id);
 }
 
+const model::GameSession* Application::GetPlayerGameSession(std::string_view token) const {
+    return get_players_info_use_case_.GetPlayerGameSession(token);
+}
+
 const model::GameSession::IdToDogIndex& Application::ListPlayers(std::string_view token) const {
-    return list_players_use_case_.GetPlayersList(token);
+    return get_players_info_use_case_.GetPlayersList(token);
 }
 
 JoinGameResult Application::JoinGame(const std::string& user_name, const std::string& map_id) {

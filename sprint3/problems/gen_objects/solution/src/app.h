@@ -65,14 +65,15 @@ struct ListPlayersError {
     std::string what() const;
 };
 
-class ListPlayersUseCase {
+class GetPlayersInfoUseCase {
 public:
-    ListPlayersUseCase(const user::Players* players, const user::PlayerTokens* tokens)
+    GetPlayersInfoUseCase(const user::Players* players, const user::PlayerTokens* tokens)
         : players_(players)
         , tokens_(tokens) {
     }
 
     const model::GameSession::IdToDogIndex& GetPlayersList(std::string_view token) const;
+    const model::GameSession* GetPlayerGameSession(std::string_view token) const;
 
 private:
     const user::Players* players_;
@@ -157,6 +158,7 @@ public:
 
     const model::Game::Maps& ListMaps() const;
     const model::Map* FindMap(model::Map::Id map_id) const;
+    const model::GameSession* GetPlayerGameSession(std::string_view token) const;
     const model::GameSession::IdToDogIndex& ListPlayers(std::string_view token) const;
     JoinGameResult JoinGame(const std::string& user_name, const std::string& map_id);
     bool MoveDog(std::string_view token, std::string_view move);
@@ -171,7 +173,7 @@ private:
     // create all scenario below
     GetMapUseCase get_map_use_case_{game_};
     ListMapsUseCase list_maps_use_case_{game_};
-    ListPlayersUseCase list_players_use_case_{&players_, &tokens_};
+    GetPlayersInfoUseCase get_players_info_use_case_{&players_, &tokens_};
     JoinGameUseCase join_game_use_case_{game_, &players_, &tokens_};
     ManageDogActionsUseCase manage_dog_actions_use_case_{&players_, &tokens_};
     ProcessTickUseCase process_tick_use_case_{game_};

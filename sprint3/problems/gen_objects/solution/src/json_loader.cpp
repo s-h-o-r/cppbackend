@@ -42,6 +42,10 @@ model::Office PrepareOffice(json::object& office_info) {
     return {model::Office::Id{id_str}, point, offset};
 }
 
+std::vector<extra_data::LootType> LoadLootTypes(json::array& loot_types) {
+    
+}
+
 model::Map PrepareMap(json::object& map_info, model::Velocity default_dog_speed) {
     model::Map map(model::Map::Id(json::value_to<std::string>(map_info.at("id"sv))),
                    json::value_to<std::string>(map_info.at("name"sv)));
@@ -65,6 +69,11 @@ model::Map PrepareMap(json::object& map_info, model::Velocity default_dog_speed)
     json::array offices = map_info.at("offices"sv).as_array();
     for (auto it = offices.begin(); it != offices.end(); ++it) {
         map.AddOffice(PrepareOffice(it->as_object()));
+    }
+
+    json::array loot_types = map_info.at("lootTypes"sv).as_array();
+    for (auto it = loot_types.begin(); it != loot_types.end(); ++it) {
+        map.AddLootType({it->as_object()});
     }
 
     return map;
@@ -95,10 +104,12 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
     }
 
     json::array& maps = game_info.as_object().at("maps"sv).as_array();
-
     for (auto it = maps.begin(); it != maps.end(); ++it) {
         game.AddMap(PrepareMap(it->as_object(), default_dog_speed));
     }
+
+    auto loot_config = game_info.at("lootGeneratorConfig"sv).as_object();
+    game.SetLootConfig(loot_config.at("period"sv).as_double(), loot_config.at("probability"sv).as_double());
 
     return game;
 }

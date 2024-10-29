@@ -264,20 +264,28 @@ private:
 
         ExecuteAuthorized(request, response, [self = shared_from_this(), &response](std::string_view token) {
             const auto& players = self->app_.ListPlayers(token);
-            json::object players_on_map_json;
-            players_on_map_json["players"].emplace_object();
+
+            json::object game_state_json;
+
             for (const auto& [id, player] : players) {
                 const model::DogPoint& pos = player->GetPosition();
                 const model::Speed& speed = player->GetSpeed();
 
-                players_on_map_json["players"].as_object().insert_or_assign(std::to_string(*id), json::object{
+                game_state_json["players"].as_object().insert_or_assign(std::to_string(*id), json::object{
                     {"pos", {pos.x, pos.y}},
                     {"speed", {speed.s_x, speed.s_y}},
                     {"dir", model::DirectionToString(player->GetDirection())}
                 });
             }
 
-            response.body() = json::serialize(json::value(std::move(players_on_map_json)));
+            for (const auto& [loot_type, loot_point] : self->app_.GetPlayerGameSession(token)->GetAllLoot()) {
+                game_state_json["lostObjects"].as_object().insert({
+                    {"type", loot_type},
+                    {"pos", {loot_point.x, loot_point.y}}
+                });
+            }
+
+            response.body() = json::serialize(json::value(std::move(game_state_json)));
 
             response.set(http::field::content_type, ContentType::APP_JSON);
             response.content_length(response.body().size());

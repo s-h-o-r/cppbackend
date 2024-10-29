@@ -1,7 +1,12 @@
 #include <cmath>
+#include <filesystem>
+
 #include <catch2/catch_test_macros.hpp>
 
+#include "../src/json_loader.h"
 #include "../src/loot_generator.h"
+#include "../src/model.h"
+
 
 using namespace std::literals;
 
@@ -68,6 +73,73 @@ SCENARIO("Loot generation") {
                         1.0 / (std::log(1 - 0.5) / std::log(1.0 - 0.25))});
                 CHECK(gen.Generate(time_interval, 0, 4) == 0);
                 CHECK(gen.Generate(time_interval, 0, 4) == 1);
+            }
+        }
+    }
+}
+
+SCENARIO("Loot generation on map") {
+    using loot_gen::LootGenerator;
+    using TimeInterval = LootGenerator::TimeInterval;
+    using namespace model;
+
+    GIVEN("A game") {
+        Game game = json_loader::LoadGame("../../data/config.json");
+        REQUIRE(!game.GetMaps().empty());
+        REQUIRE(game.GetLootConfig().period == 5.0);
+        REQUIRE(game.GetLootConfig().probability == 0.5);
+
+        auto maps = game.GetMaps();
+        for (auto map : maps) {
+            GIVEN("a map " << *map.GetId()) {
+                WHEN("map has been successfully loaded") {
+                    THEN("map should has info about loot") {
+                        auto loot_types = map.GetLootTypes();
+                        CHECK(!loot_types.empty());
+                        for (auto loot_type : loot_types) {
+                            INFO("loot_info shouldn't be empty");
+                            CHECK(!loot_type.loot_info.empty());
+                        }
+                    }
+                }
+            }
+        }
+
+        WHEN("session has started with loot generator (probability 100%) and period 1s") {
+            LootGenerator gen{1s, 1.};
+            GameSession session(game.FindMap(Map::Id{"map1"s}), false, LootGenerator{1s, 0.5});
+            REQUIRE(session.GetAllLoot().empty());
+
+            WHEN("try to generate loot without looters") {
+                session.UpdateState(1000);
+                THEN("loot should be empty") {
+                    CHECK(session.GetAllLoot().empty());
+                }
+            }
+
+            WHEN("session has one looter") {
+                session.AddDog("TestPlayer1"sv);
+
+                session.UpdateState(1000);
+                THEN("after the first tick session should have one piece of loot") {
+                    CHECK(session.GetAllLoot().size() == 1);
+                }
+
+                session.UpdateState(1000);
+                THEN("after the second tick session should also have one piece of loot") {
+                    INFO("amount of looters: " << session.GetDogs().size() << "\namount of loot: " << session.GetAllLoot().size());
+                    CHECK(session.GetAllLoot().size() == 1);
+                }
+            }
+
+            WHEN("amount of looters increasing amount of loot also increasing") {
+                for (unsigned looter = 1; looter < 11; ++looter) {
+                    session.AddDog("TestPlayer"sv);
+                    INFO("amount of looters: " << session.GetDogs().size() << "\namount of loot: " << session.GetAllLoot().size());
+                    session.UpdateState(1000);
+                    INFO("amount of looters: " << session.GetDogs().size() << "\namount of loot: " << session.GetAllLoot().size());
+                    CHECK(session.GetAllLoot().size() == looter);
+                }
             }
         }
     }

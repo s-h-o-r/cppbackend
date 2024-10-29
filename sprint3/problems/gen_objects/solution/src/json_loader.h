@@ -2,7 +2,9 @@
 
 #include <boost/json.hpp>
 #include <filesystem>
+#include <vector>
 
+#include "extra_data.h"
 #include "model.h"
 
 namespace json = boost::json;

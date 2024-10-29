@@ -114,6 +114,10 @@ const Map::Offices& Map::GetOffices() const noexcept {
     return offices_;
 }
 
+const std::vector<extra_data::LootType>& Map::GetLootTypes() const noexcept {
+    return loot_types_;
+}
+
 void Map::SetDogSpeed(Velocity speed) {
     dog_speed_ = speed;
 }
@@ -148,7 +152,11 @@ void Map::AddOffice(Office&& office) {
     }
 }
 
-DogPoint Map::GetRandomDogPoint() const {
+void Map::AddLootType(extra_data::LootType&& loot_type) {
+    loot_types_.emplace_back(std::move(loot_type));
+}
+
+DogPoint Map::GetRandomPoint() const {
     if (roads_.size() == 0) {
         throw std::logic_error("No roads on map to generate random road"s);
     }
@@ -273,7 +281,7 @@ Dog* GameSession::AddDog(std::string_view name) {
 
     DogPoint start_point;
     if (random_dog_spawn_) {
-        start_point = map_->GetRandomDogPoint();
+        start_point = map_->GetRandomPoint();
     } else {
         start_point = map_->GetDefaultSpawnPoint();
     }
@@ -291,7 +299,16 @@ const GameSession::IdToDogIndex& GameSession::GetDogs() const {
     return dogs_;
 }
 
+const std::vector<Loot>& GameSession::GetAllLoot() const {
+    return loot_;
+}
+
 void GameSession::UpdateState(std::int64_t tick) {
+    UpdateDogsState(tick);
+    GenerateLoot(tick);
+}
+
+void GameSession::UpdateDogsState(std::int64_t tick) {
     double ms_convertion = 0.001; // 1ms = 0.001s
     double tick_multy = static_cast<double>(tick) * ms_convertion;
 
@@ -424,6 +441,17 @@ void GameSession::UpdateState(std::int64_t tick) {
      */
 }
 
+void GameSession::GenerateLoot(std::int64_t tick) {
+    loot_gen::LootGenerator::TimeInterval time_interval(tick);
+    unsigned loot_counter = loot_generator_.Generate(time_interval, static_cast<unsigned>(loot_.size()), static_cast<unsigned>(dogs_.size()));
+    std::random_device dev;
+    std::mt19937 rng(dev());
+    std::uniform_int_distribution<std::mt19937::result_type> dist(0, static_cast<unsigned>(map_->GetLootTypes().size() - 1));
+    for (; loot_counter != 0; --loot_counter) {
+        loot_.push_back({static_cast<uint8_t>(dist(rng)) , map_->GetRandomPoint()});
+    }
+}
+
 void Game::AddMap(Map map) {
     const size_t index = maps_.size();
     if (auto [it, inserted] = map_id_to_index_.emplace(map.GetId(), index); !inserted) {
@@ -450,8 +478,11 @@ const Map* Game::FindMap(const Map::Id& id) const noexcept {
 }
 
 GameSession& Game::StartGameSession(const Map* map) {
+    using namespace std::chrono_literals;
     if (sessions_[map->GetId()].empty()) {
-        sessions_[map->GetId()].push_back(std::make_shared<GameSession>(map, random_dog_spawn_));
+        loot_gen::LootGenerator::TimeInterval time_interval(static_cast<int>(loot_config_.period * 1000));
+        sessions_[map->GetId()].push_back(std::make_shared<GameSession>(map, random_dog_spawn_,
+                                                                        loot_gen::LootGenerator(time_interval, loot_config_.probability)));
     }
     return *sessions_[map->GetId()].back();
 }
@@ -477,6 +508,15 @@ void Game::SetDogSpeed(Velocity default_speed) {
 
 Velocity Game::GetDefaultGogSpeed() const noexcept {
     return default_dog_speed_;
+}
+
+void Game::SetLootConfig(double period, double probability) {
+    loot_config_.period = period;
+    loot_config_.probability = probability;
+}
+
+const LootConfig& Game::GetLootConfig() const {
+    return loot_config_;
 }
 
 void Game::UpdateState(std::int64_t tick) {
