@@ -42,10 +42,6 @@ model::Office PrepareOffice(json::object& office_info) {
     return {model::Office::Id{id_str}, point, offset};
 }
 
-std::vector<extra_data::LootType> LoadLootTypes(json::array& loot_types) {
-    
-}
-
 model::Map PrepareMap(json::object& map_info, model::Velocity default_dog_speed) {
     model::Map map(model::Map::Id(json::value_to<std::string>(map_info.at("id"sv))),
                    json::value_to<std::string>(map_info.at("name"sv)));

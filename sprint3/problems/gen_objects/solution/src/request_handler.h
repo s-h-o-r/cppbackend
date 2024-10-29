@@ -280,11 +280,13 @@ private:
             }
 
             game_state_json["lostObjects"].emplace_object();
+            int loot_type_id = 0;
             for (const auto& [loot_type, loot_point] : self->app_.GetPlayerGameSession(token)->GetAllLoot()) {
-                game_state_json["lostObjects"].as_object().insert({
+                game_state_json["lostObjects"].as_object().insert_or_assign(std::to_string(loot_type_id), json::object{
                     {"type", loot_type},
                     {"pos", {loot_point.x, loot_point.y}}
                 });
+                ++loot_type_id;
             }
 
             response.body() = json::serialize(json::value(std::move(game_state_json)));
