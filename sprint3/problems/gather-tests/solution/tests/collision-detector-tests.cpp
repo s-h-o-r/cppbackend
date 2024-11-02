@@ -244,5 +244,21 @@ TEST_CASE("FindGatherEvents test case", "[gather events]") {
             }
 
         }
+
+        SECTION("two gatherers take items in chronological order") {
+            Item item{{5., 5.}, 0.2};
+            Gatherer gatherer1{{1., 5.}, {5., 5.}, 0.5};
+            Gatherer gatherer2{{3., 5.}, {5., 4.99}, 0.5};
+
+            provider.AddItem(item)
+                .AddGatherer(gatherer1) // first gatherer takes the item later
+                .AddGatherer(gatherer2); // second gatherer takes the item erlier
+
+            buffer_result = TryCollectPoint(gatherer2.start_pos, gatherer2.end_pos, item.position);
+            right_events.push_back({0, 1, buffer_result.sq_distance, buffer_result.proj_ratio});
+            buffer_result = TryCollectPoint(gatherer1.start_pos, gatherer1.end_pos, item.position);
+            right_events.push_back({0, 0, buffer_result.sq_distance, buffer_result.proj_ratio});
+            CHECK_THAT(FindGatherEvents(provider), IsPermutation(right_events));
+        }
     }
 }
