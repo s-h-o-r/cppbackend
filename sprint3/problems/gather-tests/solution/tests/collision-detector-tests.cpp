@@ -7,6 +7,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <algorithm>
+#include <sstream>
 #include <vector>
 // Напишите здесь тесты для функции collision_detector::FindGatherEvents
 
