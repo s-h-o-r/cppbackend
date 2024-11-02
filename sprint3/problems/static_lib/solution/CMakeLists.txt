@@ -51,6 +51,8 @@ add_executable(game_server_tests
 target_link_libraries(game_server GameModelLib)
 target_link_libraries(game_server_tests CONAN_PKG::catch2 GameModelLib)
 
-include(CTest)
-include(${CONAN_BUILD_DIRS_CATCH2_DEBUG}/Catch.cmake)
-catch_discover_tests(game_server_tests)
+if(CMAKE_BUILD_TYPE EQUAL "Debug")
+    include(CTest)
+    include(${CONAN_BUILD_DIRS_CATCH2_DEBUG}/Catch.cmake)
+    catch_discover_tests(game_server_tests)
+endif()
