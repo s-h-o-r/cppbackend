@@ -1,6 +1,7 @@
 #pragma once
 
 #include <compare>
+#include <cmath>
 
 namespace geom {
 
