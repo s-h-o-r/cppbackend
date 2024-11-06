@@ -75,7 +75,7 @@ model::Map PrepareMap(json::object& map_info, geom::Velocity default_dog_speed, 
 
     json::array loot_types = map_info.at("lootTypes"sv).as_array();
     for (auto it = loot_types.begin(); it != loot_types.end(); ++it) {
-        unsigned type_score = static_cast<unsigned>(it->at("value"sv).as_uint64());
+        unsigned type_score = static_cast<unsigned>(it->at("value"sv).as_int64());
         map.AddLootType({std::move(it->as_object())}, type_score);
     }
 
