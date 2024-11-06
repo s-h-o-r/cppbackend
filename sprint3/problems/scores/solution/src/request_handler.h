@@ -275,7 +275,8 @@ private:
                 game_state_json["players"].as_object().insert_or_assign(std::to_string(*id), json::object{
                     {"pos", {pos.x, pos.y}},
                     {"speed", {speed.s_x, speed.s_y}},
-                    {"dir", model::DirectionToString(dog->GetDirection())}
+                    {"dir", model::DirectionToString(dog->GetDirection())},
+                    {"score", dog->GetScore()}
                 });
 
                 auto& player_obj = game_state_json["players"].as_object()[std::to_string(*id)].as_object();

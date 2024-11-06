@@ -140,12 +140,13 @@ public:
     const Offices& GetOffices() const noexcept;
     const std::vector<extra_data::LootType>& GetLootTypes() const noexcept;
     size_t GetBagCapacity() const noexcept;
+    unsigned GetLootScore(std::uint8_t loot_type) const noexcept;
 
     void SetDogSpeed(geom::Velocity speed);
     void AddRoad(Road&& road);
     void AddBuilding(Building&& building);
     void AddOffice(Office&& office);
-    void AddLootType(extra_data::LootType&& loot_type);
+    void AddLootType(extra_data::LootType&& loot_type, unsigned score);
     void SetBagCapacity(size_t bag_capacity);
 
     geom::Point2D GetRandomPoint() const;
@@ -176,6 +177,7 @@ private:
     Offices offices_;
 
     std::vector<extra_data::LootType> loot_types_;
+    std::unordered_map<std::uint8_t, unsigned> loot_type_to_score_;
 };
 
 namespace net = boost::asio;
@@ -224,6 +226,8 @@ public:
     bool IsStopped() const;
 
     game_obj::Bag<std::shared_ptr<Loot>>* GetBag() const;
+    void AddScore(unsigned score_to_add) const;
+    std::uint64_t GetScore() const;
 
 private:
     Id id_;
@@ -235,6 +239,7 @@ private:
     double width_ = 0.6;
 
     mutable game_obj::Bag<std::shared_ptr<Loot>> bag_;
+    mutable std::uint64_t score_ = 0;
 
     std::atomic_int counter_{0};
     static inline std::uint32_t next_dog_id = 0;

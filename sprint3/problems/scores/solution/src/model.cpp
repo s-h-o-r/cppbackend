@@ -126,6 +126,10 @@ size_t Map::GetBagCapacity() const noexcept {
     return bag_capacity_;
 }
 
+unsigned Map::GetLootScore(std::uint8_t loot_type) const noexcept {
+    return loot_type_to_score_.at(loot_type);
+}
+
 void Map::SetDogSpeed(geom::Velocity speed) {
     dog_speed_ = speed;
 }
@@ -160,8 +164,9 @@ void Map::AddOffice(Office&& office) {
     }
 }
 
-void Map::AddLootType(extra_data::LootType&& loot_type) {
+void Map::AddLootType(extra_data::LootType&& loot_type, unsigned score) {
     loot_types_.emplace_back(std::move(loot_type));
+    loot_type_to_score_.insert({static_cast<std::uint8_t>(loot_types_.size() - 1), score});
 }
 
 void Map::SetBagCapacity(size_t bag_capacity) {
@@ -294,6 +299,14 @@ bool Dog::IsStopped() const {
 
 game_obj::Bag<std::shared_ptr<Loot>>* Dog::GetBag() const {
     return &bag_;
+}
+
+void Dog::AddScore(unsigned score_to_add) const {
+    score_ += score_to_add;
+}
+
+std::uint64_t Dog::GetScore() const {
+    return score_;
 }
 
 LootOfficeDogProvider::LootOfficeDogProvider(GameSession* session)
@@ -536,7 +549,8 @@ void GameSession::HandleCollisions() {
         if (std::holds_alternative<const Office*>(items_gatherer_provider_.GetRawItemVal(it->item_id))) {
             if (!gatherer_bag->Empty()) {
                 for (size_t i = 0; i < gatherer_bag->GetSize(); ++i) {
-                    gatherer_bag->TakeTopLoot();
+                    auto loot = gatherer_bag->TakeTopLoot();
+                    items_gatherer_provider_.GetDog(it->gatherer_id)->AddScore(map_->GetLootScore(loot->type));
                 }
             }
         } else if (std::holds_alternative<const Loot*>(items_gatherer_provider_.GetRawItemVal(it->item_id))) {
