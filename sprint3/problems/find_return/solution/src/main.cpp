@@ -10,6 +10,7 @@
 #include "cl_parser.h"
 #include "json_loader.h"
 #include "logger.h"
+#include "model.h"
 #include "request_handler.h"
 #include "ticker.h"
 

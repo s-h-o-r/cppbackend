@@ -19,8 +19,6 @@ struct CollectionResult {
     double proj_ratio;
 };
 
-// Движемся из точки a в точку b и пытаемся подобрать точку c.
-// Эта функция реализована в уроке.
 CollectionResult TryCollectPoint(geom::Point2D a, geom::Point2D b, geom::Point2D c);
 
 struct Item {

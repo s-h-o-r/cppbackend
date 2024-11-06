@@ -90,6 +90,10 @@ geom::Offset Office::GetOffset() const noexcept {
     return offset_;
 }
 
+double Office::GetWidth() const noexcept {
+    return width_;
+}
+
 const Map::Id& Map::GetId() const noexcept {
     return id_;
 }
@@ -116,6 +120,10 @@ const Map::Offices& Map::GetOffices() const noexcept {
 
 const std::vector<extra_data::LootType>& Map::GetLootTypes() const noexcept {
     return loot_types_;
+}
+
+size_t Map::GetBagCapacity() const noexcept {
+    return bag_capacity_;
 }
 
 void Map::SetDogSpeed(geom::Velocity speed) {
@@ -154,6 +162,10 @@ void Map::AddOffice(Office&& office) {
 
 void Map::AddLootType(extra_data::LootType&& loot_type) {
     loot_types_.emplace_back(std::move(loot_type));
+}
+
+void Map::SetBagCapacity(size_t bag_capacity) {
+    bag_capacity_ = bag_capacity;
 }
 
 geom::Point2D Map::GetRandomPoint() const {
@@ -220,6 +232,11 @@ std::vector<const Road*> Map::GetRelevantRoads(geom::Point2D dog_point) const {
     return relevant_road;
 }
 
+Loot::Id Loot::GetNewId() {
+    static size_t new_id = 0;
+    return Id{new_id++};
+}
+
 const std::string& Dog::GetName() const noexcept {
     return name_;
 }
@@ -233,11 +250,16 @@ void Dog::SetName(std::string_view name) {
 }
 
 void Dog::SetPosition(geom::Point2D new_pos) {
+    prev_pos_ = pos_;
     pos_ = new_pos;
 }
 
 const geom::Point2D& Dog::GetPosition() const {
     return pos_;
+}
+
+const geom::Point2D& Dog::GetPreviousPosition() const {
+    return prev_pos_;
 }
 
 void Dog::SetSpeed(geom::Speed new_speed) {
@@ -257,6 +279,10 @@ Direction Dog::GetDirection() const {
 
 }
 
+double Dog::GetWidth() const noexcept {
+    return width_;
+}
+
 void Dog::Stop() {
     speed_ = {0, 0};
 }
@@ -264,6 +290,61 @@ void Dog::Stop() {
 bool Dog::IsStopped() const {
     return std::fabs(speed_.s_x) < std::numeric_limits<double>::epsilon()
         && std::fabs(speed_.s_y) < std::numeric_limits<double>::epsilon();
+}
+
+game_obj::Bag<std::shared_ptr<Loot>>* Dog::GetBag() const {
+    return &bag_;
+}
+
+LootOfficeDogProvider::LootOfficeDogProvider(GameSession* session)
+: game_session_(session) {
+    for (const auto& office : session->GetMap()->GetOffices()) {
+        items_.push_back(&office);
+    }
+}
+
+size_t LootOfficeDogProvider::ItemsCount() const {
+    return items_.size();
+}
+
+collision_detector::Item LootOfficeDogProvider::GetItem(size_t idx) const {
+    if (std::holds_alternative<const Office*>(items_.at(idx))) {
+        const Office* office_ptr = std::get<const Office*>(items_.at(idx));
+        const geom::Point& position = office_ptr->GetPosition();
+        return {{static_cast<double>(position.x), static_cast<double>(position.y)}, office_ptr->GetWidth()};
+    } else if (std::holds_alternative<const Loot*>(items_.at(idx))) {
+        const Loot* loot = std::get<const Loot*>(items_.at(idx));
+        return {loot->point, 0.};
+    } else {
+        throw std::logic_error("unknown variant type");
+    }
+}
+
+size_t LootOfficeDogProvider::GatherersCount() const {
+    return gatherers_.size();
+}
+
+collision_detector::Gatherer LootOfficeDogProvider::GetGatherer(size_t idx) const {
+    auto dog = gatherers_.at(idx);
+    return {dog->GetPreviousPosition(), dog->GetPosition(), dog->GetWidth()};
+}
+
+void LootOfficeDogProvider::PushBackLoot(const Loot* loot) {
+    items_.push_back(loot);
+}
+
+void LootOfficeDogProvider::EraseLoot(size_t idx) {
+    const Loot* loot = std::get<const Loot*>(items_.at(idx));
+    game_session_->EraseLoot(loot->id);
+    items_.erase(items_.begin() + idx);
+}
+
+const std::variant<const Office*, const Loot*>& LootOfficeDogProvider::GetRawItemVal(size_t idx) const {
+    return items_.at(idx);
+}
+
+const Dog* LootOfficeDogProvider::GetDog(size_t idx) const {
+    return gatherers_.at(idx);
 }
 
 const Map::Id& GameSession::GetMapId() const {
@@ -289,7 +370,7 @@ Dog* GameSession::AddDog(std::string_view name) {
     geom::Point2D dog_pos = {static_cast<double>(start_point.x),
                                 static_cast<double>(start_point.y)}; // map_->GetRandomDogPoint();
 
-    auto dog = std::make_shared<Dog>(std::string(name), dog_pos, default_speed);
+    auto dog = std::make_shared<Dog>(std::string(name), dog_pos, default_speed, map_->GetBagCapacity());
     auto dog_id = dog->GetId();
     dogs_.emplace(dog_id, std::move(dog));
     return dogs_.at(dog_id).get();
@@ -299,12 +380,17 @@ const GameSession::IdToDogIndex& GameSession::GetDogs() const {
     return dogs_;
 }
 
-const std::vector<Loot>& GameSession::GetAllLoot() const {
+const GameSession::IdToLootIndex& GameSession::GetAllLoot() const {
     return loot_;
+}
+
+void GameSession::EraseLoot(Loot::Id loot_id) {
+    loot_.erase(loot_id);
 }
 
 void GameSession::UpdateState(std::int64_t tick) {
     UpdateDogsState(tick);
+    HandleCollisions();
     GenerateLoot(tick);
 }
 
@@ -441,6 +527,33 @@ void GameSession::UpdateDogsState(std::int64_t tick) {
      */
 }
 
+void GameSession::HandleCollisions() {
+    auto gather_events = collision_detector::FindGatherEvents(items_gatherer_provider_);
+
+    std::vector<size_t> items_to_erase;
+    for (auto it = gather_events.begin(); it != gather_events.end(); ++it) {
+        auto gatherer_bag = items_gatherer_provider_.GetDog(it->gatherer_id)->GetBag();
+        if (std::holds_alternative<const Office*>(items_gatherer_provider_.GetRawItemVal(it->item_id))) {
+            if (!gatherer_bag->Empty()) {
+                for (size_t i = 0; i < gatherer_bag->GetSize(); ++i) {
+                    gatherer_bag->TakeTopLoot();
+                }
+            }
+        } else if (std::holds_alternative<const Loot*>(items_gatherer_provider_.GetRawItemVal(it->item_id))) {
+            if (gatherer_bag->Full()) continue;
+            const Loot* taking_loot = std::get<const Loot*>(items_gatherer_provider_.GetRawItemVal(it->item_id));
+            gatherer_bag->AddLoot(loot_.at(taking_loot->id));
+            items_to_erase.push_back(it->item_id);
+        }
+    }
+
+    // убираем из prvider и session весь лишний лут
+    for (size_t id : items_to_erase) {
+        items_gatherer_provider_.EraseLoot(id);
+    }
+
+}
+
 void GameSession::GenerateLoot(std::int64_t tick) {
     loot_gen::LootGenerator::TimeInterval time_interval(tick);
     unsigned loot_counter = loot_generator_.Generate(time_interval, static_cast<unsigned>(loot_.size()), static_cast<unsigned>(dogs_.size()));
@@ -448,7 +561,9 @@ void GameSession::GenerateLoot(std::int64_t tick) {
     std::mt19937 rng(dev());
     std::uniform_int_distribution<std::mt19937::result_type> dist(0, static_cast<unsigned>(map_->GetLootTypes().size() - 1));
     for (; loot_counter != 0; --loot_counter) {
-        loot_.push_back({static_cast<uint8_t>(dist(rng)) , map_->GetRandomPoint()});
+        auto loot_ptr = std::make_shared<Loot>(Loot::GetNewId(), static_cast<uint8_t>(dist(rng)), map_->GetRandomPoint());
+        loot_.insert({loot_ptr->id, loot_ptr});
+        items_gatherer_provider_.PushBackLoot(loot_ptr.get());
     }
 }
 

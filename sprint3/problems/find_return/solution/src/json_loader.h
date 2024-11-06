@@ -17,7 +17,7 @@ model::Building PrepareBuilding(json::object& building_info);
 
 model::Office PrepareOffice(json::object& office_info);
 
-model::Map PrepareMap(json::object& map_info, geom::Velocity default_dog_speed);
+model::Map PrepareMap(json::object& map_info, geom::Velocity default_dog_speed, size_t default_bag_capacity);
 
 model::Game LoadGame(const std::filesystem::path& json_path);
 

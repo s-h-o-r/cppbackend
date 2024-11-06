@@ -42,7 +42,7 @@ model::Office PrepareOffice(json::object& office_info) {
     return {model::Office::Id{id_str}, point, offset};
 }
 
-model::Map PrepareMap(json::object& map_info, geom::Velocity default_dog_speed) {
+model::Map PrepareMap(json::object& map_info, geom::Velocity default_dog_speed, size_t default_bag_capacity) {
     model::Map map(model::Map::Id(json::value_to<std::string>(map_info.at("id"sv))),
                    json::value_to<std::string>(map_info.at("name"sv)));
 
@@ -50,6 +50,12 @@ model::Map PrepareMap(json::object& map_info, geom::Velocity default_dog_speed) 
         map.SetDogSpeed(json::value_to<double>(map_info.at("dogSpeed"sv)));
     } else {
         map.SetDogSpeed(default_dog_speed);
+    }
+
+    if (map_info.count("bagCapacity"sv)) {
+        map.SetBagCapacity(json::value_to<size_t>(map_info.at("bagCapacity"sv)));
+    } else {
+        map.SetBagCapacity(default_bag_capacity);
     }
 
     json::array roads = map_info.at("roads"sv).as_array();
@@ -94,14 +100,19 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
     json::value game_info{json::parse(json_data, ec)};
 
     geom::Velocity default_dog_speed = 1.0;
+    size_t default_bag_capacity = 1;
 
     if (game_info.as_object().count("defaultDogSpeed"sv)) {
         default_dog_speed = json::value_to<geom::Velocity>(game_info.at("defaultDogSpeed"sv));
     }
 
+    if (game_info.as_object().count("defaultBagCapacity"sv)) {
+        default_bag_capacity = json::value_to<size_t>(game_info.at("defaultBagCapacity"sv));
+    }
+
     json::array& maps = game_info.as_object().at("maps"sv).as_array();
     for (auto it = maps.begin(); it != maps.end(); ++it) {
-        game.AddMap(PrepareMap(it->as_object(), default_dog_speed));
+        game.AddMap(PrepareMap(it->as_object(), default_dog_speed, default_bag_capacity));
     }
 
     auto loot_config = game_info.at("lootGeneratorConfig"sv).as_object();

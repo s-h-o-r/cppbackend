@@ -12,9 +12,12 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
+#include "collision_detector.h"
 #include "extra_data.h"
+#include "game_objects.h"
 #include "geom.h"
 #include "loot_generator.h"
 #include "tagged.h"
@@ -91,8 +94,7 @@ public:
     const geom::Rectangle& GetBounds() const noexcept;
 
 private:
-    geom::Rectangle bounds_;
-};
+    geom::Rectangle bounds_;};
 
 class Office {
 public:
@@ -107,14 +109,18 @@ public:
     const Id& GetId() const noexcept;
     geom::Point GetPosition() const noexcept;
     geom::Offset GetOffset() const noexcept;
+    double GetWidth() const noexcept;
 
 private:
     Id id_;
     geom::Point position_;
     geom::Offset offset_;
+
+    double width_ = 0.5;
 };
 
-class Map {
+class Map { // todo: сделать класс более надежным к ошибкам конфиг файла (вынести все деволтные атрибуты в качестве обязательных в конструктор)
+            // пока же дефолтное значение скорости устанавливается через функцию
 public:
     using Id = util::Tagged<std::string, Map>;
     using Roads = std::deque<Road>;
@@ -133,12 +139,14 @@ public:
     const Roads& GetRoads() const noexcept;
     const Offices& GetOffices() const noexcept;
     const std::vector<extra_data::LootType>& GetLootTypes() const noexcept;
+    size_t GetBagCapacity() const noexcept;
 
     void SetDogSpeed(geom::Velocity speed);
     void AddRoad(Road&& road);
     void AddBuilding(Building&& building);
     void AddOffice(Office&& office);
     void AddLootType(extra_data::LootType&& loot_type);
+    void SetBagCapacity(size_t bag_capacity);
 
     geom::Point2D GetRandomPoint() const;
     geom::Point2D GetDefaultSpawnPoint() const;
@@ -153,10 +161,10 @@ private:
     using VerticalRoadIndex = std::unordered_map<geom::Coord, std::vector<const Road*>>;
     using HorizontalRoadIndex = std::unordered_map<geom::Coord, std::vector<const Road*>>;
 
-
     Id id_;
     std::string name_;
     geom::Velocity dog_speed_;
+    size_t bag_capacity_;
 
     Roads roads_;
     VerticalRoadIndex vertical_road_index_;
@@ -172,15 +180,30 @@ private:
 
 namespace net = boost::asio;
 
+using LootPoint = geom::Point2D;
+
+struct Loot {
+    using Id = util::Tagged<size_t, Loot>;
+
+    Id id;
+    std::uint8_t type;
+    LootPoint point;
+
+    static Id GetNewId();
+};
+
 class Dog {
 public:
     using Id = util::Tagged<std::uint32_t, Dog>;
 
-    explicit Dog(std::string name, geom::Point2D pos, geom::Speed speed) noexcept
+    explicit Dog(std::string name, geom::Point2D pos, geom::Speed speed,
+                 size_t bag_capacity) noexcept
         : id_(next_dog_id++)
         , name_(name)
         , pos_(pos)
-        , speed_(speed) {
+        , prev_pos_(pos)
+        , speed_(speed)
+        , bag_(bag_capacity) {
             detail::ThreadChecker varname(counter_);
     }
 
@@ -190,30 +213,31 @@ public:
 
     void SetPosition(geom::Point2D new_pos);
     const geom::Point2D& GetPosition() const;
+    const geom::Point2D& GetPreviousPosition() const;
     void SetSpeed(geom::Speed new_speed);
     const geom::Speed& GetSpeed() const;
     void SetDirection(Direction new_dir);
     Direction GetDirection() const;
+    double GetWidth() const noexcept;
 
     void Stop();
     bool IsStopped() const;
-    
+
+    game_obj::Bag<std::shared_ptr<Loot>>* GetBag() const;
+
 private:
     Id id_;
     std::string name_;
     geom::Point2D pos_;
+    geom::Point2D prev_pos_;
     geom::Speed speed_;
     Direction dir_ = Direction::NORTH;
+    double width_ = 0.6;
+
+    mutable game_obj::Bag<std::shared_ptr<Loot>> bag_;
 
     std::atomic_int counter_{0};
     static inline std::uint32_t next_dog_id = 0;
-};
-
-using LootPoint = geom::Point2D;
-
-struct Loot {
-    std::uint8_t type;
-    LootPoint point;
 };
 
 struct LootConfig {
@@ -221,19 +245,47 @@ struct LootConfig {
     double probability = 0.;
 };
 
+class GameSession;
+
+class LootOfficeDogProvider : public collision_detector::ItemGathererProvider {
+public:
+    LootOfficeDogProvider(GameSession* session);
+
+    size_t ItemsCount() const override;
+    collision_detector::Item GetItem(size_t idx) const override;
+    size_t GatherersCount() const override;
+    collision_detector::Gatherer GetGatherer(size_t idx) const override;
+
+    void PushBackLoot(const Loot* loot);
+    void EraseLoot(size_t idx);
+    const std::variant<const Office*, const Loot*>& GetRawItemVal(size_t idx) const;
+    const Dog* GetDog(size_t idx) const;
+
+private:
+    using LootId = size_t;
+
+    GameSession* game_session_;
+
+    std::vector<std::variant<const Office*, const Loot*>> items_;
+    std::vector<Dog*> gatherers_;
+};
+
 class GameSession {
 public:
     using Id = util::Tagged<std::uint64_t, GameSession>;
     using DogIdHasher = util::TaggedHasher<Dog::Id>;
-    using IdToDogIndex = std::map<Dog::Id, std::shared_ptr<Dog>>;
+    using IdToDogIndex = std::unordered_map<Dog::Id, std::shared_ptr<Dog>, DogIdHasher>;
+
+    using LootIdHasher = util::TaggedHasher<Loot::Id>;
+    using IdToLootIndex = std::unordered_map<Loot::Id, std::shared_ptr<Loot>, LootIdHasher>;
 
     explicit GameSession(const Map* map, bool random_dog_spawn, loot_gen::LootGenerator&& loot_generator)
         : map_(map)
         , random_dog_spawn_(random_dog_spawn)
         , loot_generator_(std::move(loot_generator)) {
-            if (map == nullptr) {
-                throw std::runtime_error("Cannot open game session on empty map");
-            }
+        if (map == nullptr) {
+            throw std::runtime_error("Cannot open game session on empty map");
+        }
     }
 
     GameSession(const GameSession&) = delete;
@@ -243,7 +295,9 @@ public:
     const model::Map* GetMap() const;
     Dog* AddDog(std::string_view name);
     const IdToDogIndex& GetDogs() const;
-    const std::vector<Loot>& GetAllLoot() const;
+    const IdToLootIndex& GetAllLoot() const;
+
+    void EraseLoot(Loot::Id loot_id);
 
     void UpdateState(std::int64_t tick);
 
@@ -253,12 +307,14 @@ private:
 
     bool random_dog_spawn_ = false;
 
-    std::vector<Loot> loot_;
+    IdToLootIndex loot_;
     loot_gen::LootGenerator loot_generator_;
+    LootOfficeDogProvider items_gatherer_provider_{this};
 
     std::atomic_int counter_{0};
 
     void UpdateDogsState(std::int64_t tick);
+    void HandleCollisions();
     void GenerateLoot(std::int64_t tick);
 };
 

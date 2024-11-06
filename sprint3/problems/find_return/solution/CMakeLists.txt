@@ -28,6 +28,8 @@ add_library(GameModelLib STATIC
     src/collision_detector.h
     src/collision_detector.cpp
     src/geom.h
+    src/game_objects.h
+    src/game_objects.cpp
 )
 
 target_include_directories(GameModelLib PUBLIC CONAN_PKG::boost)

@@ -263,28 +263,37 @@ private:
     void ProcessApiGameState(Request& request, StringResponse& response) {
 
         ExecuteAuthorized(request, response, [self = shared_from_this(), &response](std::string_view token) {
-            const auto& players = self->app_.ListPlayers(token);
+            const auto& dogs = self->app_.ListPlayers(token);
 
             json::object game_state_json;
             game_state_json["players"].emplace_object();
 
-            for (const auto& [id, player] : players) {
-                const geom::Point2D& pos = player->GetPosition();
-                const geom::Speed& speed = player->GetSpeed();
+            for (const auto& [id, dog] : dogs) {
+                const geom::Point2D& pos = dog->GetPosition();
+                const geom::Speed& speed = dog->GetSpeed();
 
                 game_state_json["players"].as_object().insert_or_assign(std::to_string(*id), json::object{
                     {"pos", {pos.x, pos.y}},
                     {"speed", {speed.s_x, speed.s_y}},
-                    {"dir", model::DirectionToString(player->GetDirection())}
+                    {"dir", model::DirectionToString(dog->GetDirection())}
                 });
+
+                auto& player_obj = game_state_json["players"].as_object()[std::to_string(*id)].as_object();
+                player_obj["bag"].emplace_array();
+                for (const auto& loot : dog->GetBag()->GetAllLoot()) {
+                    player_obj.insert_or_assign("bag", json::array{
+                        {"id", *loot->id},
+                        {"type", loot->type}
+                    });
+                }
             }
 
             game_state_json["lostObjects"].emplace_object();
             int loot_type_id = 0;
-            for (const auto& [loot_type, loot_point] : self->app_.GetPlayerGameSession(token)->GetAllLoot()) {
+            for (const auto& [_, loot_ptr] : self->app_.GetPlayerGameSession(token)->GetAllLoot()) {
                 game_state_json["lostObjects"].as_object().insert_or_assign(std::to_string(loot_type_id), json::object{
-                    {"type", loot_type},
-                    {"pos", {loot_point.x, loot_point.y}}
+                    {"type", loot_ptr->type},
+                    {"pos", {loot_ptr->point.x, loot_ptr->point.y}}
                 });
                 ++loot_type_id;
             }
