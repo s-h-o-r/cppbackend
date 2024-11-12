@@ -206,11 +206,10 @@ const Road* Map::GetVerticalRoad(geom::Point2D dog_point) const {
     geom::Point map_point = ConvertToMapPoint(dog_point);
 
     if (vertical_road_index_.contains(map_point.x)) {
-        for (const Road* road : vertical_road_index_.at(map_point.x)) {
-            if (road->IsDogOnRoad(dog_point)) {
-                return road;
-            }
-        }
+        const auto& roads = vertical_road_index_.at(map_point.x);
+        return *std::find_if(roads.begin(), roads.end(), [&dog_point](const Road* road) {
+            return road->IsDogOnRoad(dog_point);
+        });
     }
     return nullptr;
 }
@@ -218,11 +217,10 @@ const Road* Map::GetVerticalRoad(geom::Point2D dog_point) const {
 const Road* Map::GetHorizontalRoad(geom::Point2D dog_point) const {
     geom::Point map_point = ConvertToMapPoint(dog_point);
     if (horizontal_road_index_.contains(map_point.y)) {
-        for (const Road* road : horizontal_road_index_.at(map_point.y)) {
-            if (road->IsDogOnRoad(dog_point)) {
-                return road;
-            }
-        }
+        const auto& roads = horizontal_road_index_.at(map_point.y);
+        return *std::find_if(roads.begin(), roads.end(), [&dog_point](const Road* road) {
+            return road->IsDogOnRoad(dog_point);
+        });
     }
     return nullptr;
 }

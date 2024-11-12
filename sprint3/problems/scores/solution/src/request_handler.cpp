@@ -336,7 +336,6 @@ StringResponse StaticRequestHandler::MakeErrorStaticFileResponse(http::status st
     response.result(status);
     response.set(http::field::content_type, ContentType::TXT_PLAIN);
 
-    std::string_view error_message;
     switch (status) {
         case http::status::not_found:
             response.body() = "File is not found"sv;

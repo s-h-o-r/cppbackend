@@ -254,7 +254,7 @@ class GameSession;
 
 class LootOfficeDogProvider : public collision_detector::ItemGathererProvider {
 public:
-    LootOfficeDogProvider(GameSession* session);
+    explicit LootOfficeDogProvider(GameSession* session);
 
     size_t ItemsCount() const override;
     collision_detector::Item GetItem(size_t idx) const override;

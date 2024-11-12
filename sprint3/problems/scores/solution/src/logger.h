@@ -82,7 +82,7 @@ private:
     }
 
     template <typename Response>
-    void LogResponse(long long time, Response& response) const {
+    void LogResponse(std::uint64_t time, Response& response) const {
         auto content_type = response[http::field::content_type];
         if (content_type.empty()) {
             content_type = "null";
