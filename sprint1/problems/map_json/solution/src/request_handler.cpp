@@ -48,7 +48,7 @@ void tag_invoke(json::value_from_tag, json::value& jv, const model::Map& map) {
 namespace http_handler {
 
 std::string RequestHandler::ParseMapToJson(const model::Map* map) {
-    
+
     return json::serialize(json::value_from(*map));
 }
 
