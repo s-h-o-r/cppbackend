@@ -1,4 +1,5 @@
 #pragma once
+#include <boost/archive/binary_oarchive.hpp>
 #include <boost/serialization/shared_ptr.hpp>
 #include <boost/serialization/vector.hpp>
 #include <boost/serialization/unordered_map.hpp>
@@ -8,7 +9,8 @@
 #include "model.h"
 #include "player.h"
 
-#include <cassert>
+#include <filesystem>
+#include <fstream>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -51,13 +53,7 @@ public:
         , capacity_(bag.GetCapacity()) {
     }
 
-    [[nodiscard]] game_obj::Bag<model::Loot> Restore() const {
-        game_obj::Bag<model::Loot> bag{capacity_};
-        for (const model::Loot& item : loot_) {
-            bag.PickUpLoot(item);
-        }
-        return bag;
-    }
+    [[nodiscard]] game_obj::Bag<model::Loot> Restore() const;
 
     template <typename Archive>
     void serialize(Archive& ar, [[maybe_unused]] const unsigned version) {
@@ -85,15 +81,7 @@ public:
         , score_(dog.GetScore()) {
     }
 
-    [[nodiscard]] std::shared_ptr<model::Dog> Restore() const {
-        game_obj::Bag<model::Loot> bag = bag_.Restore();
-        auto dog_ptr = std::make_shared<model::Dog>(id_, name_, pos_, speed_, bag.GetCapacity());
-        dog_ptr->SetDirection(dir_);
-        dog_ptr->AddScore(score_);
-        auto* dog_bag = dog_ptr->GetBag();
-        *dog_bag = std::move(bag);
-        return dog_ptr;
-    }
+    [[nodiscard]] std::shared_ptr<model::Dog> Restore() const;
 
     template <typename Archive>
     void serialize(Archive& ar, [[maybe_unused]] const unsigned version) {
@@ -120,39 +108,9 @@ class GameSessionRepr {
 public:
     GameSessionRepr() = default;
 
-    explicit GameSessionRepr(const model::GameSession& session)
-        : map_id_(session.GetMap()->GetId())
-        , next_dog_id_(session.GetNextDogId())
-        , next_loot_id_(session.GetNextLootId())
-    {
-        for (const auto& [_, dog] : session.GetDogs()) {
-            dogs_.push_back(DogRepr(*dog));
-        }
+    explicit GameSessionRepr(const model::GameSession& session);
 
-        for (const auto& [_, loot_sptr] : session.GetAllLoot()) {
-            loot_.push_back(loot_sptr);
-        }
-    }
-
-    [[nodiscard]] std::shared_ptr<model::GameSession> Restore(const model::Game* game) const {
-        if (game->FindMap(map_id_) ==  nullptr) {
-            throw std::logic_error("there is no map with such id");
-        }
-        auto session = std::make_shared<model::GameSession>(game->FindMap(map_id_), game->IsDogSpawnRandom(), game->GetLootConfig());
-
-        model::GameSession::IdToDogIndex dog_index;
-        for (const DogRepr& dog_repr : dogs_) {
-            auto dog = dog_repr.Restore();
-            dog_index[dog->GetId()] = dog;
-        }
-
-        model::GameSession::IdToLootIndex loot_index;
-        for (auto& loot : loot_) {
-            loot_index[loot->id] = loot;
-        }
-        session->Restore(std::move(dog_index), next_dog_id_, std::move(loot_index), next_loot_id_);
-        return session;
-    }
+    [[nodiscard]] std::shared_ptr<model::GameSession> Restore(const model::Game* game) const;
 
     template <typename Archive>
     void serialize(Archive& ar, [[maybe_unused]] const unsigned version) {
@@ -175,26 +133,9 @@ class GameRepr {
 public:
     GameRepr() = default;
 
-    explicit GameRepr(const model::Game& game) {
-        for (const auto& [map_id, sessions] : game.GetAllSessions()) {
-            for (const auto& session : sessions) {
-                sessions_.push_back(GameSessionRepr(*session));
-            }
-        }
-    }
+    explicit GameRepr(const model::Game& game);
 
-    void Restore(model::Game* game) const {
-        try {
-            model::Game::SessionsByMaps sessions;
-            for (auto& session_repr : sessions_) {
-                auto session_ptr = session_repr.Restore(game);
-                sessions[session_ptr->GetMapId()].push_back(session_ptr);
-            }
-            game->RestoreSessions(std::move(sessions));
-        } catch (...) {
-            throw std::logic_error("imposible to restore game for this configuration");
-        }
-    }
+    void Restore(model::Game* game) const;
 
     template <typename Archive>
     void serialize(Archive& ar, [[maybe_unused]] const unsigned version) {
@@ -220,20 +161,9 @@ class PlayersRepr {
 public:
     PlayersRepr() = default;
     
-    explicit PlayersRepr(const user::Players& players) {
-        for (const auto& player : players.GetAllPlayers()) {
-            players_.push_back({player->GetGameSession()->GetMapId(), player->GetDog()->GetId()});
-        }
-    }
+    explicit PlayersRepr(const user::Players& players);
 
-    user::Players Restore(model::Game* game) const {
-        user::Players restored_players;
-        for (const PlayerRepr& player : players_) {
-            restored_players.Add(game->GetGameSession(player.map_id_)->GetDog(player.dog_id_),
-                                 game->GetGameSession(player.map_id_));
-        }
-        return restored_players;
-    }
+    user::Players Restore(model::Game* game) const;
 
     template <typename Archive>
     void serialize(Archive& ar, [[maybe_unused]] const unsigned version) {
@@ -247,23 +177,9 @@ class PlayerTokenRepr {
 public:
     PlayerTokenRepr() = default;
 
-    explicit PlayerTokenRepr(const user::PlayerTokens& player_tokens) {
-        for (const auto& [token, player_ptr] : player_tokens.token_to_player_) {
-            auto res = token_to_player_.emplace(*token, PlayerRepr{player_ptr->GetGameSession()->GetMapId(), player_ptr->GetDog()->GetId()});
-            if (!res.second) {
-                throw std::logic_error("trying to emplace duplicated token");
-            }
-        }
-    }
+    explicit PlayerTokenRepr(const user::PlayerTokens& player_tokens);
 
-    user::PlayerTokens Restore(user::Players* players) const {
-        user::PlayerTokens restored_player_tokens;
-        for (const auto& [token, player_repr] : token_to_player_) {
-            restored_player_tokens.token_to_player_.emplace(token, players->FindByDogIdAndMapId(player_repr.dog_id_,
-                                                                                                player_repr.map_id_));
-        }
-        return restored_player_tokens;
-    }
+    user::PlayerTokens Restore(user::Players* players) const;
 
     template <typename Archive>
     void serialize(Archive& ar, [[maybe_unused]] const unsigned version) {
@@ -284,13 +200,7 @@ public:
 
     }
 
-    app::Application Restore(model::Game* game) const {
-        game_repr_.Restore(game);
-        app::Application app{game};
-        app.players_ = players_.Restore(game);
-        app.tokens_ = player_tokens_.Restore(&app.players_);
-        return app;
-    }
+    void Restore(app::Application* app) const;
 
     template <typename Archive>
     void serialize(Archive& ar, [[maybe_unused]] const unsigned version) {
@@ -307,25 +217,22 @@ private:
 
 class SerializationListener : public app::ApplicationListener {
 public:
-    explicit SerializationListener(std::chrono::milliseconds save_period)
-    : save_period_(save_period) {
+    explicit SerializationListener(std::chrono::milliseconds save_period, const app::Application* app,
+                                   std::filesystem::path state_file_path)
+    : save_period_(save_period)
+    , app_(app)
+    , state_file_path_(std::move(state_file_path)) {
     }
 
-    void OnTick(std::chrono::milliseconds delta) override {
-        time_since_save_ += delta;
-        if (time_since_save_ >= save_period_) {
-            Serialize();
-            save_period_ = std::chrono::milliseconds::zero();
-        }
-    }
+    void Serialize() const;
+    void OnTick(std::chrono::milliseconds delta) override;
 
 private:
     std::chrono::milliseconds save_period_;
     std::chrono::milliseconds time_since_save_{0};
 
-    void Serialize() const {
-        
-    }
+    const app::Application* app_;
+    std::filesystem::path state_file_path_;
 };
 
 }  // namespace serialization

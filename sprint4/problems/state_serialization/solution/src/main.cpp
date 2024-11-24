@@ -1,7 +1,10 @@
 #include "sdk.h"
 
+#include <boost/archive/binary_iarchive.hpp>
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/signal_set.hpp>
+#include <boost/system/errc.hpp>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <thread>
@@ -11,6 +14,7 @@
 #include "json_loader.h"
 #include "logger.h"
 #include "model.h"
+#include "model_serialization.h"
 #include "request_handler.h"
 #include "ticker.h"
 
@@ -59,8 +63,31 @@ int main(int argc, const char* argv[]) {
     try {
         // 1. Загружаем карту из файла и построить модель игры
         model::Game game = json_loader::LoadGame(cl_args.config_file_path);
+        app::Application app(&game);
+
         if (cl_args.random_spawn_point) {
             game.TurnOnRandomSpawn();
+        }
+
+        std::shared_ptr<serialization::SerializationListener> listener{nullptr};
+        if (!cl_args.state_file.empty()) {
+            std::ifstream strm{cl_args.state_file, strm.binary};
+
+            if (strm.is_open()) {
+                try {
+                    boost::archive::binary_iarchive i_archive{strm};
+                    serialization::ApplicationRepr repr;
+                    i_archive >> repr;
+                    repr.Restore(&app);
+                } catch (...) {
+                    http_logger::LogServerError(boost::system::errc::errc_t::invalid_argument, 
+                                                "cannot restore model from save"sv, "restore"sv);
+                    throw;
+                }
+            }
+            strm.close();
+            listener = std::make_shared<serialization::SerializationListener>
+                (std::chrono::milliseconds{cl_args.save_state_period}, &app, cl_args.state_file);
         }
 
         // 2. Инициализируем io_context
@@ -76,7 +103,6 @@ int main(int argc, const char* argv[]) {
         });
 
         // 4. Создаём обработчик HTTP-запросов и связываем его с моделью игры
-        app::Application app(&game);
         auto game_state_strand = net::make_strand(ioc);
 
         auto handler = std::make_shared<http_handler::RequestHandler>(app, ioc, game_state_strand,
@@ -104,6 +130,10 @@ int main(int argc, const char* argv[]) {
         RunWorkers(std::max(1u, num_threads), [&ioc] {
             ioc.run();
         });
+
+        if (listener) {
+            listener->Serialize();
+        }
 
         http_logger::LogServerEnd(0, ""sv);
     } catch (const std::exception& ex) {

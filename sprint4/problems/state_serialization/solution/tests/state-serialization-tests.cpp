@@ -310,7 +310,8 @@ SCENARIO_METHOD(Fixture, "Game and App Serialization") {
                         input_archive >> repr;
 
                         model::Game new_game = json_loader::LoadGame("../tests/test_config.json"s);
-                        app::Application restored = repr.Restore(&new_game);
+                        app::Application restored{&new_game};
+                        repr.Restore(&restored);
 
                         CHECK(app.GetPlayerGameSession(*join_res_dog1.token)->GetMap()->GetId() ==
                               restored.GetPlayerGameSession(*join_res_dog1.token)->GetMap()->GetId());

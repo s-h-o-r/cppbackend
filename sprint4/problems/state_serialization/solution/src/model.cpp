@@ -343,7 +343,7 @@ void LootOfficeDogProvider::EraseLoot(size_t idx) {
     items_.erase(items_.begin() + idx);
 }
 
-std::variant<const Office*, const Loot*> LootOfficeDogProvider::GetRawLootVal(size_t idx) const {
+const std::variant<const Office*, const Loot*>& LootOfficeDogProvider::GetRawLootVal(size_t idx) const {
     return items_.at(idx);
 
 }

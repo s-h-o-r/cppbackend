@@ -48,6 +48,7 @@ add_executable(game_server
     src/ticker.h
     src/ticker.cpp
     src/model_serialization.h
+    src/model_serialization.cpp
 )
 
 add_executable(game_server_tests

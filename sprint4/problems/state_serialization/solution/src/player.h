@@ -44,7 +44,6 @@ public:
 
     PlayerTokens(PlayerTokens&& other)
     : token_to_player_(std::move(other.token_to_player_)) {
-
     }
 
     PlayerTokens& operator=(PlayerTokens&& other) {

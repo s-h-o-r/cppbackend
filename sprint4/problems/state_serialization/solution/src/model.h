@@ -164,7 +164,7 @@ private:
 
     Id id_;
     std::string name_;
-    double dog_speed_;
+    double dog_speed_ = 0.;
     size_t bag_capacity_ = 3;
 
     Roads roads_;
@@ -257,7 +257,7 @@ public:
 
     void PushBackLoot(const Loot* loot);
     void EraseLoot(size_t idx);
-    std::variant<const Office*, const Loot*> GetRawLootVal(size_t idx) const;
+    const std::variant<const Office*, const Loot*>& GetRawLootVal(size_t idx) const;
     void AddGatherer(Dog* gatherer);
     const Dog* GetDog(size_t idx) const;
     Dog* GetDog(size_t idx);

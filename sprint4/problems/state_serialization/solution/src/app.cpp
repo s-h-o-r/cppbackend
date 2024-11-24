@@ -140,6 +140,9 @@ bool Application::MoveDog(std::string_view token, std::string_view move) {
 
 void Application::ProcessTick(std::int64_t tick) {
     process_tick_use_case_.ProcessTick(tick);
+    if (listener_) {
+        listener_->OnTick(std::chrono::milliseconds{tick});
+    }
 }
 
 bool Application::IsTokenValid(std::string_view token) const {
@@ -147,6 +150,10 @@ bool Application::IsTokenValid(std::string_view token) const {
         return false;
     }
     return true;
+}
+
+void Application::SetListener(ApplicationListener* listener) {
+    listener_ = listener;
 }
 
 } // namespace app

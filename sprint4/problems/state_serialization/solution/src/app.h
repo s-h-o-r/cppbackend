@@ -183,10 +183,14 @@ public:
     void ProcessTick(std::int64_t tick);
 
     bool IsTokenValid(std::string_view token) const;
+    void SetListener(ApplicationListener* listener);
+
 private:
     model::Game* game_;
     user::Players players_;
     user::PlayerTokens tokens_;
+
+    ApplicationListener* listener_ = nullptr;
 
     // create all scenario below
     GetMapUseCase get_map_use_case_{game_};
