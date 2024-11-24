@@ -30,6 +30,8 @@ add_library(GameModelLib STATIC
     src/geom.h
     src/game_objects.h
     src/game_objects.cpp
+    src/model_serialization.h
+    src/model_serialization.cpp
 )
 
 target_include_directories(GameModelLib PUBLIC CONAN_PKG::boost)
@@ -47,8 +49,6 @@ add_executable(game_server
     src/cl_parser.cpp
     src/ticker.h
     src/ticker.cpp
-    src/model_serialization.h
-    src/model_serialization.cpp
 )
 
 add_executable(game_server_tests
