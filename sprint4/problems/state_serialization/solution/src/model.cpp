@@ -290,11 +290,11 @@ bool Dog::IsStopped() const {
         && std::fabs(speed_.y) < std::numeric_limits<double>::epsilon();
 }
 
-game_obj::Bag<Loot>* Dog::GetBag() const {
+game_obj::Bag<Loot>* Dog::GetBag() {
     return &bag_;
 }
 
-void Dog::AddScore(std::uint64_t score_to_add) const {
+void Dog::AddScore(std::uint64_t score_to_add) {
     score_ += score_to_add;
 }
 
@@ -302,30 +302,33 @@ std::uint64_t Dog::GetScore() const {
     return score_;
 }
 
-LootOfficeDogProvider::LootOfficeDogProvider(GameSession* session)
-: game_session_(session) {
-    if (session->GetMap() != nullptr) {
-        for (const auto& office : session->GetMap()->GetOffices()) {
-            items_.push_back(&office);
-        }
-    }
-}
+//LootOfficeDogProvider::LootOfficeDogProvider(GameSession* session)
+//: game_session_(session) {
+//    if (session->GetMap() != nullptr) {
+//        for (const auto& office : session->GetMap()->GetOffices()) {
+//            items_.push_back(&office);
+//        }
+//    }
+//}
 
 size_t LootOfficeDogProvider::ItemsCount() const {
     return items_.size();
 }
 
 collision_detector::Item LootOfficeDogProvider::GetItem(size_t idx) const {
-    if (std::holds_alternative<const Office*>(items_.at(idx))) {
-        const Office* office_ptr = std::get<const Office*>(items_.at(idx));
-        const geom::Point& position = office_ptr->GetPosition();
-        return {{static_cast<double>(position.x), static_cast<double>(position.y)}, office_ptr->GetWidth()};
-    } else if (std::holds_alternative<const Loot*>(items_.at(idx))) {
-        const Loot* loot = std::get<const Loot*>(items_.at(idx));
-        return {loot->point, 0.};
-    } else {
-        throw std::logic_error("unknown variant type");
-    }
+    double item_width = 0.;
+    return {items_.at(idx)->point, item_width};
+//    if (std::holds_alternative<const Office*>(items_.at(idx))) {
+//        const Office* office_ptr = std::get<const Office*>(items_.at(idx));
+//        const geom::Point& position = office_ptr->GetPosition();
+//        return {{static_cast<double>(position.x), static_cast<double>(position.y)}, office_ptr->GetWidth()};
+//    } else if (std::holds_alternative<std::shared_ptr<Loot>>(items_.at(idx))) {
+//        std::shared_ptr<Loot> loot = std::get<std::shared_ptr<Loot>>(items_.at(idx));
+//        double item_width = 0.;
+//        return {loot->point, item_width};
+//    } else {
+//        throw std::logic_error("unknown variant type");
+//    }
 }
 
 size_t LootOfficeDogProvider::GatherersCount() const {
@@ -342,12 +345,10 @@ void LootOfficeDogProvider::PushBackLoot(const Loot* loot) {
 }
 
 void LootOfficeDogProvider::EraseLoot(size_t idx) {
-    const Loot* loot = std::get<const Loot*>(items_.at(idx));
-    game_session_->EraseLoot(loot->id);
     items_.erase(items_.begin() + idx);
 }
 
-const std::variant<const Office*, const Loot*>& LootOfficeDogProvider::GetRawItemVal(size_t idx) const {
+const Loot* LootOfficeDogProvider::GetRawItemVal(size_t idx) const {
     return items_.at(idx);
 }
 
@@ -357,6 +358,10 @@ void LootOfficeDogProvider::AddGatherer(Dog* gatherer) {
 
 
 const Dog* LootOfficeDogProvider::GetDog(size_t idx) const {
+    return gatherers_.at(idx);
+}
+
+Dog* LootOfficeDogProvider::GetDog(size_t idx) {
     return gatherers_.at(idx);
 }
 
@@ -498,76 +503,6 @@ void GameSession::UpdateDogsState(std::int64_t tick) {
             dog->Stop();
         }
     }
-
-    /*
-     Где-то здесь имеется ошибка в реализации хранения индекса карт по координатам, из-за чего некоторые
-     кейсы неправильно обрабатываются на некоторых платформах (на Mac работает, в Докере падает, тесты
-     не проходит). Не разобрался, потому что не смог нормально запустить дебаггер на платформах, на которых
-     эта реализация падает. Надо будет разобраться и сделать более быстрый варинат обновления сервера
-
-    for (auto [_, dog] : dogs_) {
-        if (dog->IsStopped()) {
-            continue;
-        }
-
-        auto cur_dog_pos = dog->GetPosition();
-        auto dog_speed = dog->GetSpeed();
-        DogPoint new_dog_pos = {cur_dog_pos.x + (dog_speed.s_x * tick_multy),
-            cur_dog_pos.y + (dog_speed.s_y * tick_multy)};
-
-        const Road* vertical_road_with_dog = map_->GetVerticalRoad(cur_dog_pos);
-        const Road* horizontal_road_with_dog = map_->GetHorizontalRoad(cur_dog_pos);
-
-        assert((vertical_road_with_dog != nullptr || horizontal_road_with_dog != nullptr));
-
-        if (vertical_road_with_dog != nullptr && vertical_road_with_dog->IsDogOnRoad(new_dog_pos)) {
-            dog->SetPosition(new_dog_pos);
-            return;
-        }
-
-        if (horizontal_road_with_dog != nullptr && horizontal_road_with_dog->IsDogOnRoad(new_dog_pos)) {
-            dog->SetPosition(new_dog_pos);
-            return;
-        }
-
-        switch (dog->GetDirection()) {
-            case Direction::NORTH: {
-                if (vertical_road_with_dog != nullptr) {
-                    new_dog_pos = {cur_dog_pos.x, vertical_road_with_dog->GetUpperEdge()};
-                } else if (horizontal_road_with_dog != nullptr) {
-                    new_dog_pos = {cur_dog_pos.x, horizontal_road_with_dog->GetUpperEdge()};
-                }
-                break;
-            }
-            case Direction::SOUTH: {
-                if (vertical_road_with_dog != nullptr) {
-                    new_dog_pos = {cur_dog_pos.x, vertical_road_with_dog->GetBottomEdge()};
-                } else if (horizontal_road_with_dog != nullptr) {
-                    new_dog_pos = {cur_dog_pos.x, horizontal_road_with_dog->GetBottomEdge()};
-                }
-                break;
-            }
-            case Direction::WEST: {
-                if (horizontal_road_with_dog != nullptr) {
-                    new_dog_pos = {horizontal_road_with_dog->GetLeftEdge(), cur_dog_pos.y};
-                } else if (vertical_road_with_dog != nullptr) {
-                    new_dog_pos = {vertical_road_with_dog->GetLeftEdge(), cur_dog_pos.y};
-                }
-                break;
-            }
-            case Direction::EAST: {
-                if (horizontal_road_with_dog != nullptr) {
-                    new_dog_pos = {horizontal_road_with_dog->GetRightEdge(), cur_dog_pos.y};
-                } else if (vertical_road_with_dog != nullptr) {
-                    new_dog_pos = {vertical_road_with_dog->GetRightEdge(), cur_dog_pos.y};
-                }
-                break;
-            }
-        }
-        dog->SetPosition(new_dog_pos);
-        dog->Stop();
-    }
-     */
 }
 
 void GameSession::HandleCollisions() {
@@ -575,23 +510,34 @@ void GameSession::HandleCollisions() {
 
     std::vector<size_t> items_to_erase;
     for (auto it = gather_events.begin(); it != gather_events.end(); ++it) {
-        auto gatherer_bag = items_gatherer_provider_.GetDog(it->gatherer_id)->GetBag();
-        if (std::holds_alternative<const Office*>(items_gatherer_provider_.GetRawItemVal(it->item_id))) {
-            if (!gatherer_bag->Empty()) {
-                for (size_t i = 0; i < gatherer_bag->GetSize(); ++i) {
-                    auto loot = gatherer_bag->TakeTopLoot();
-                    items_gatherer_provider_.GetDog(it->gatherer_id)->AddScore(map_->GetLootScore(loot.type));
-                }
+        if (std::find(items_to_erase.begin(), items_to_erase.end(), it->item_id) == items_to_erase.end()) {
+            auto* gatherer_bag = items_gatherer_provider_.GetDog(it->gatherer_id)->GetBag();
+            const Loot* taking_loot = items_gatherer_provider_.GetRawItemVal(it->item_id);
+            if (gatherer_bag->PickUpLoot(*taking_loot)) {
+                items_to_erase.push_back(it->item_id);
             }
-        } else if (std::holds_alternative<const Loot*>(items_gatherer_provider_.GetRawItemVal(it->item_id))) {
-            const Loot* taking_loot = std::get<const Loot*>(items_gatherer_provider_.GetRawItemVal(it->item_id));
-            if (!gatherer_bag->AddLoot(*loot_.at(taking_loot->id))) continue;
-            items_to_erase.push_back(it->item_id);
         }
+
+//        if (std::holds_alternative<const Office*>(items_gatherer_provider_.GetRawItemVal(it->item_id))) {
+//            if (!gatherer_bag->Empty()) {
+//                for (size_t i = 0; i < gatherer_bag->GetSize(); ++i) {
+//                    auto loot = gatherer_bag->TakeTopLoot();
+//                    items_gatherer_provider_.GetDog(it->gatherer_id)->AddScore(map_->GetLootScore(loot->type));
+//                }
+//            }
+//        } else if (std::holds_alternative<std::shared_ptr<Loot>>(items_gatherer_provider_.GetRawItemVal(it->item_id))) {
+//            if (std::find(items_to_erase.begin(), items_to_erase.end(), it->item_id) == items_to_erase.end()) {
+//                std::shared_ptr<Loot> taking_loot = std::get<std::shared_ptr<Loot>>(items_gatherer_provider_.GetRawItemVal(it->item_id));
+//                if (gatherer_bag->PickUpLoot(loot_.at(taking_loot->id))) {
+//                    items_to_erase.push_back(it->item_id);
+//                }
+//            }
+//        }
     }
 
     // убираем из provider и session весь лишний лут
     for (size_t id : items_to_erase) {
+        loot_.erase(items_gatherer_provider_.GetRawItemVal(id)->id);
         items_gatherer_provider_.EraseLoot(id);
     }
 

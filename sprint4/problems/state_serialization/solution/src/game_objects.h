@@ -15,11 +15,11 @@ public:
         loot_.reserve(capacity_);
     }
 
-    bool AddLoot(Loot loot) {
+    bool PickUpLoot(Loot loot) {
         if (Full()) {
             return false;
         }
-        loot_.push_back(loot);
+        loot_.push_back(std::move(loot));
         return true;
     }
 

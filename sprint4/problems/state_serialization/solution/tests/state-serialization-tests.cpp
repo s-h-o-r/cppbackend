@@ -62,8 +62,8 @@ SCENARIO_METHOD(Fixture, "Bag Serialization") {
     GIVEN("a bag") {
         const game_obj::Bag<Loot> bag = [] {
             game_obj::Bag<Loot> bag{5};
-            bag.AddLoot(Loot{Loot::Id{10}, 3, {10, 20}});
-            bag.AddLoot(Loot{Loot::Id{15}, 2, {1, 5}});
+            bag.PickUpLoot(Loot{Loot::Id{10}, 3, {10, 20}});
+            bag.PickUpLoot(Loot{Loot::Id{15}, 2, {1, 5}});
             return bag;
         }();
 
@@ -92,7 +92,7 @@ SCENARIO_METHOD(Fixture, "Dog Serialization") {
         const auto dog = [] {
             Dog dog{Dog::Id{42}, "Pluto"s, {42.2, 12.5}, {2.3, -1.2}, 3};
             dog.AddScore(42);
-            dog.GetBag()->AddLoot(Loot{Loot::Id{10}, 2u});
+            dog.GetBag()->PickUpLoot(Loot{Loot::Id{10}, 2u});
             dog.SetDirection(Direction::EAST);
             return dog;
         }();

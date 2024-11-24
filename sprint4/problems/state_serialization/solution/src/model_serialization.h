@@ -53,7 +53,7 @@ public:
     [[nodiscard]] game_obj::Bag<model::Loot> Restore() const {
         game_obj::Bag<model::Loot> bag{capacity_};
         for (const model::Loot& item : loot_) {
-            bag.AddLoot(item);
+            bag.PickUpLoot(item);
         }
         return bag;
     }
@@ -324,6 +324,6 @@ private:
     void Serialize() const {
         
     }
-}
+};
 
 }  // namespace serialization

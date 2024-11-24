@@ -224,8 +224,8 @@ public:
     void Stop();
     bool IsStopped() const;
 
-    game_obj::Bag<Loot>* GetBag() const;
-    void AddScore(std::uint64_t score_to_add) const;
+    game_obj::Bag<Loot>* GetBag();
+    void AddScore(std::uint64_t score_to_add);
     std::uint64_t GetScore() const;
 
 private:
@@ -237,8 +237,8 @@ private:
     Direction dir_ = Direction::NORTH;
     double width_ = 0.6;
 
-    mutable game_obj::Bag<Loot> bag_;
-    mutable std::uint64_t score_ = 0;
+    game_obj::Bag<Loot> bag_;
+    std::uint64_t score_ = 0;
 };
 
 struct LootConfig {
@@ -250,8 +250,6 @@ class GameSession;
 
 class LootOfficeDogProvider : public collision_detector::ItemGathererProvider {
 public:
-    explicit LootOfficeDogProvider(GameSession* session);
-
     size_t ItemsCount() const override;
     collision_detector::Item GetItem(size_t idx) const override;
     size_t GatherersCount() const override;
@@ -259,16 +257,16 @@ public:
 
     void PushBackLoot(const Loot* loot);
     void EraseLoot(size_t idx);
-    const std::variant<const Office*, const Loot*>& GetRawItemVal(size_t idx) const;
+    const Loot* GetRawItemVal(size_t idx) const;
     void AddGatherer(Dog* gatherer);
     const Dog* GetDog(size_t idx) const;
+    Dog* GetDog(size_t idx);
+
 
 private:
     using LootId = size_t;
 
-    GameSession* game_session_;
-
-    std::vector<std::variant<const Office*, const Loot*>> items_;
+    std::vector<const Loot*> items_;
     std::vector<Dog*> gatherers_;
 };
 
@@ -322,7 +320,7 @@ private:
     IdToLootIndex loot_;
     std::uint32_t next_loot_id_ = 0;
     loot_gen::LootGenerator loot_generator_;
-    LootOfficeDogProvider items_gatherer_provider_{this};
+    LootOfficeDogProvider items_gatherer_provider_;
 
     void UpdateDogsState(std::int64_t tick);
     void HandleCollisions();

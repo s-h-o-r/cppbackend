@@ -274,7 +274,7 @@ private:
 
                 game_state_json["players"].as_object().insert_or_assign(std::to_string(*id), json::object{
                     {"pos", {pos.x, pos.y}},
-                    {"speed", {speed.s_x, speed.s_y}},
+                    {"speed", {speed.x, speed.y}},
                     {"dir", model::DirectionToString(dog->GetDirection())},
                     {"score", dog->GetScore()}
                 });
@@ -283,8 +283,8 @@ private:
                 player_obj["bag"].emplace_array();
                 for (const auto& loot : dog->GetBag()->GetAllLoot()) {
                     player_obj.insert_or_assign("bag", json::array{
-                        {"id", *loot->id},
-                        {"type", loot->type}
+                        {"id", *loot.id},
+                        {"type", loot.type}
                     });
                 }
             }

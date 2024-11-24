@@ -101,7 +101,7 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
     json::value game_info{json::parse(json_data, ec)};
 
     double default_dog_speed = 1.0;
-    size_t default_bag_capacity = 1;
+    size_t default_bag_capacity = 3;
 
     if (game_info.as_object().count("defaultDogSpeed"sv)) {
         default_dog_speed = json::value_to<double>(game_info.at("defaultDogSpeed"sv));
@@ -113,7 +113,12 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
 
     json::array& maps = game_info.as_object().at("maps"sv).as_array();
     for (auto it = maps.begin(); it != maps.end(); ++it) {
-        game.AddMap(PrepareMap(it->as_object(), default_dog_speed, default_bag_capacity));
+        size_t bag_capacity = default_bag_capacity;
+        if (it->as_object().count("bagCapacity"sv)) {
+            bag_capacity = json::value_to<size_t>(it->as_object().at("bagCapacity"sv));
+        }
+
+        game.AddMap(PrepareMap(it->as_object(), default_dog_speed, bag_capacity));
     }
 
     auto loot_config = game_info.at("lootGeneratorConfig"sv).as_object();
