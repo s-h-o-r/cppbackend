@@ -89,7 +89,7 @@ SCENARIO_METHOD(Fixture, "Bag Serialization") {
 
 SCENARIO_METHOD(Fixture, "Dog Serialization") {
     GIVEN("a dog") {
-        const auto dog = [] {
+        auto dog = [] {
             Dog dog{Dog::Id{42}, "Pluto"s, {42.2, 12.5}, {2.3, -1.2}, 3};
             dog.AddScore(42);
             dog.GetBag()->PickUpLoot(Loot{Loot::Id{10}, 2u});
@@ -169,7 +169,7 @@ bool operator==(const Player& lhs, const Player& rhs) {
 
 SCENARIO_METHOD(Fixture, "Game and App Serialization") {
     GIVEN("a game from config.json with sessions on all maps and a dog and a loot") {
-        Game game = json_loader::LoadGame("../../tests/test_config.json"s);
+        Game game = json_loader::LoadGame("../tests/test_config.json"s);
         app::Application app(&game);
         game.SetLootConfig(1., 1.);
 
@@ -216,7 +216,7 @@ SCENARIO_METHOD(Fixture, "Game and App Serialization") {
             InputArchive input_archive{strm};
             serialization::GameRepr repr;
             input_archive >> repr;
-            model::Game restored = json_loader::LoadGame("../../data/config.json"s);
+            model::Game restored = json_loader::LoadGame("../tests/test_config.json"s);
             repr.Restore(&restored);
 
             THEN("It can be deserialized") {
@@ -308,7 +308,9 @@ SCENARIO_METHOD(Fixture, "Game and App Serialization") {
                         InputArchive input_archive{strm};
                         serialization::ApplicationRepr repr;
                         input_archive >> repr;
-                        app::Application restored = repr.RestoreApp(&game);
+
+                        model::Game new_game = json_loader::LoadGame("../tests/test_config.json"s);
+                        app::Application restored = repr.Restore(&new_game);
 
                         CHECK(app.GetPlayerGameSession(*join_res_dog1.token)->GetMap()->GetId() ==
                               restored.GetPlayerGameSession(*join_res_dog1.token)->GetMap()->GetId());

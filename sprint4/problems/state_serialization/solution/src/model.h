@@ -165,7 +165,7 @@ private:
     Id id_;
     std::string name_;
     double dog_speed_;
-    size_t bag_capacity_;
+    size_t bag_capacity_ = 3;
 
     Roads roads_;
     VerticalRoadIndex vertical_road_index_;
@@ -183,9 +183,9 @@ private:
 namespace net = boost::asio;
 
 struct Loot {
-    using Id = util::Tagged<size_t, Loot>;
+    using Id = util::Tagged<std::uint32_t, Loot>;
 
-    Id id{-1};
+    Id id{0};
     std::uint8_t type;
     geom::Point2D point;
 
@@ -246,10 +246,10 @@ struct LootConfig {
     double probability = 0.;
 };
 
-class GameSession;
-
 class LootOfficeDogProvider : public collision_detector::ItemGathererProvider {
 public:
+    explicit LootOfficeDogProvider(const Map::Offices& offices);
+
     size_t ItemsCount() const override;
     collision_detector::Item GetItem(size_t idx) const override;
     size_t GatherersCount() const override;
@@ -257,16 +257,14 @@ public:
 
     void PushBackLoot(const Loot* loot);
     void EraseLoot(size_t idx);
-    const Loot* GetRawItemVal(size_t idx) const;
+    std::variant<const Office*, const Loot*> GetRawLootVal(size_t idx) const;
     void AddGatherer(Dog* gatherer);
     const Dog* GetDog(size_t idx) const;
     Dog* GetDog(size_t idx);
 
 
 private:
-    using LootId = size_t;
-
-    std::vector<const Loot*> items_;
+    std::vector<std::variant<const Office*, const Loot*>> items_;
     std::vector<Dog*> gatherers_;
 };
 
@@ -320,7 +318,7 @@ private:
     IdToLootIndex loot_;
     std::uint32_t next_loot_id_ = 0;
     loot_gen::LootGenerator loot_generator_;
-    LootOfficeDogProvider items_gatherer_provider_;
+    LootOfficeDogProvider items_gatherer_provider_{map_->GetOffices()};
 
     void UpdateDogsState(std::int64_t tick);
     void HandleCollisions();

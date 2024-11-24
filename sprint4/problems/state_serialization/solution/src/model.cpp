@@ -302,33 +302,28 @@ std::uint64_t Dog::GetScore() const {
     return score_;
 }
 
-//LootOfficeDogProvider::LootOfficeDogProvider(GameSession* session)
-//: game_session_(session) {
-//    if (session->GetMap() != nullptr) {
-//        for (const auto& office : session->GetMap()->GetOffices()) {
-//            items_.push_back(&office);
-//        }
-//    }
-//}
+LootOfficeDogProvider::LootOfficeDogProvider(const Map::Offices& offices) {
+    for (const auto& office : offices) {
+        items_.push_back(&office);
+    }
+}
 
 size_t LootOfficeDogProvider::ItemsCount() const {
     return items_.size();
 }
 
 collision_detector::Item LootOfficeDogProvider::GetItem(size_t idx) const {
-    double item_width = 0.;
-    return {items_.at(idx)->point, item_width};
-//    if (std::holds_alternative<const Office*>(items_.at(idx))) {
-//        const Office* office_ptr = std::get<const Office*>(items_.at(idx));
-//        const geom::Point& position = office_ptr->GetPosition();
-//        return {{static_cast<double>(position.x), static_cast<double>(position.y)}, office_ptr->GetWidth()};
-//    } else if (std::holds_alternative<std::shared_ptr<Loot>>(items_.at(idx))) {
-//        std::shared_ptr<Loot> loot = std::get<std::shared_ptr<Loot>>(items_.at(idx));
-//        double item_width = 0.;
-//        return {loot->point, item_width};
-//    } else {
-//        throw std::logic_error("unknown variant type");
-//    }
+    if (std::holds_alternative<const Office*>(items_.at(idx))) {
+        const Office* office_ptr = std::get<const Office*>(items_.at(idx));
+        const geom::Point& position = office_ptr->GetPosition();
+        return {{static_cast<double>(position.x), static_cast<double>(position.y)}, office_ptr->GetWidth()};
+    } else if (std::holds_alternative<const Loot*>(items_.at(idx))) {
+        const Loot* loot = std::get<const Loot*>(items_.at(idx));
+        double item_width = 0.;
+        return {loot->point, item_width};
+    } else {
+        throw std::logic_error("unknown variant type");
+    }
 }
 
 size_t LootOfficeDogProvider::GatherersCount() const {
@@ -348,8 +343,9 @@ void LootOfficeDogProvider::EraseLoot(size_t idx) {
     items_.erase(items_.begin() + idx);
 }
 
-const Loot* LootOfficeDogProvider::GetRawItemVal(size_t idx) const {
+std::variant<const Office*, const Loot*> LootOfficeDogProvider::GetRawLootVal(size_t idx) const {
     return items_.at(idx);
+
 }
 
 void LootOfficeDogProvider::AddGatherer(Dog* gatherer) {
@@ -509,35 +505,27 @@ void GameSession::HandleCollisions() {
     auto gather_events = collision_detector::FindGatherEvents(items_gatherer_provider_);
 
     std::vector<size_t> items_to_erase;
-    for (auto it = gather_events.begin(); it != gather_events.end(); ++it) {
-        if (std::find(items_to_erase.begin(), items_to_erase.end(), it->item_id) == items_to_erase.end()) {
-            auto* gatherer_bag = items_gatherer_provider_.GetDog(it->gatherer_id)->GetBag();
-            const Loot* taking_loot = items_gatherer_provider_.GetRawItemVal(it->item_id);
-            if (gatherer_bag->PickUpLoot(*taking_loot)) {
-                items_to_erase.push_back(it->item_id);
+    for (const auto& event : gather_events) {
+        game_obj::Bag<Loot>* gatherer_bag = items_gatherer_provider_.GetDog(event.gatherer_id)->GetBag();
+        if (std::holds_alternative<const Office*>(items_gatherer_provider_.GetRawLootVal(event.item_id))) {
+            if (!gatherer_bag->Empty()) {
+                for (size_t i = 0; i < gatherer_bag->GetSize(); ++i) {
+                    auto loot = gatherer_bag->TakeTopLoot();
+                    items_gatherer_provider_.GetDog(event.gatherer_id)->AddScore(map_->GetLootScore(loot.type));
+                }
+            }
+        } else if (std::holds_alternative<const Loot*>(items_gatherer_provider_.GetRawLootVal(event.item_id))) {
+            if (std::find(items_to_erase.begin(), items_to_erase.end(), event.item_id) == items_to_erase.end()) {
+                const Loot* taking_loot = std::get<const Loot*>(items_gatherer_provider_.GetRawLootVal(event.item_id));
+                if (gatherer_bag->PickUpLoot(*taking_loot)) {
+                    items_to_erase.push_back(event.item_id);
+                }
             }
         }
-
-//        if (std::holds_alternative<const Office*>(items_gatherer_provider_.GetRawItemVal(it->item_id))) {
-//            if (!gatherer_bag->Empty()) {
-//                for (size_t i = 0; i < gatherer_bag->GetSize(); ++i) {
-//                    auto loot = gatherer_bag->TakeTopLoot();
-//                    items_gatherer_provider_.GetDog(it->gatherer_id)->AddScore(map_->GetLootScore(loot->type));
-//                }
-//            }
-//        } else if (std::holds_alternative<std::shared_ptr<Loot>>(items_gatherer_provider_.GetRawItemVal(it->item_id))) {
-//            if (std::find(items_to_erase.begin(), items_to_erase.end(), it->item_id) == items_to_erase.end()) {
-//                std::shared_ptr<Loot> taking_loot = std::get<std::shared_ptr<Loot>>(items_gatherer_provider_.GetRawItemVal(it->item_id));
-//                if (gatherer_bag->PickUpLoot(loot_.at(taking_loot->id))) {
-//                    items_to_erase.push_back(it->item_id);
-//                }
-//            }
-//        }
     }
-
     // убираем из provider и session весь лишний лут
     for (size_t id : items_to_erase) {
-        loot_.erase(items_gatherer_provider_.GetRawItemVal(id)->id);
+        loot_.erase(std::get<const Loot*>(items_gatherer_provider_.GetRawLootVal(id))->id);
         items_gatherer_provider_.EraseLoot(id);
     }
 

@@ -8,6 +8,7 @@
 #include "model.h"
 #include "player.h"
 
+#include <cassert>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -74,7 +75,7 @@ class DogRepr {
 public:
     DogRepr() = default;
 
-    explicit DogRepr(const model::Dog& dog)
+    explicit DogRepr(model::Dog& dog)
         : id_(dog.GetId())
         , name_(dog.GetName())
         , pos_(dog.GetPosition())
@@ -134,6 +135,9 @@ public:
     }
 
     [[nodiscard]] std::shared_ptr<model::GameSession> Restore(const model::Game* game) const {
+        if (game->FindMap(map_id_) ==  nullptr) {
+            throw std::logic_error("there is no map with such id");
+        }
         auto session = std::make_shared<model::GameSession>(game->FindMap(map_id_), game->IsDogSpawnRandom(), game->GetLootConfig());
 
         model::GameSession::IdToDogIndex dog_index;
@@ -190,7 +194,6 @@ public:
         } catch (...) {
             throw std::logic_error("imposible to restore game for this configuration");
         }
-        return game;
     }
 
     template <typename Archive>
@@ -276,15 +279,13 @@ public:
 
     explicit ApplicationRepr(const app::Application& app)
         : players_(app.players_)
-        , player_tokens_(app.tokens_) {
+        , player_tokens_(app.tokens_)
+        , game_repr_(*app.game_) {
 
     }
 
-    void RestoreGame(model::Game* game) const {
-        return game_repr_.Restore(game);
-    }
-
-    app::Application RestoreApp(model::Game* game) const {
+    app::Application Restore(model::Game* game) const {
+        game_repr_.Restore(game);
         app::Application app{game};
         app.players_ = players_.Restore(game);
         app.tokens_ = player_tokens_.Restore(&app.players_);
@@ -295,6 +296,7 @@ public:
     void serialize(Archive& ar, [[maybe_unused]] const unsigned version) {
         ar& players_;
         ar& player_tokens_;
+        ar& game_repr_;
     }
 
 private:

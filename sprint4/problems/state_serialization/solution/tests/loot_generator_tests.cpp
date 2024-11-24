@@ -85,7 +85,7 @@ SCENARIO("Loot generation on map") {
     using namespace model;
 
     GIVEN("A game") {
-        Game game = json_loader::LoadGame("../../data/config.json");
+        Game game = json_loader::LoadGame("../tests/test_config.json");
         REQUIRE(!game.GetMaps().empty());
         REQUIRE(game.GetLootConfig().period == 5.0);
         REQUIRE(game.GetLootConfig().probability == 0.5);
