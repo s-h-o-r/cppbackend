@@ -274,8 +274,7 @@ public:
     using DogIdHasher = util::TaggedHasher<Dog::Id>;
     using IdToDogIndex = std::unordered_map<Dog::Id, std::shared_ptr<Dog>, DogIdHasher>;
 
-    using LootIdHasher = util::TaggedHasher<Loot::Id>;
-    using IdToLootIndex = std::unordered_map<Loot::Id, std::shared_ptr<Loot>, LootIdHasher>;
+    using IdToLootIndex = std::map<Loot::Id, std::shared_ptr<Loot>>;
 
     explicit GameSession(const Map* map, bool random_dog_spawn, const LootConfig& loot_config)
         : map_(map)

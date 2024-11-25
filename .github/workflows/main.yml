@@ -13,6 +13,106 @@ permissions:
 
 
 jobs:
+  sprint_3:
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: Checkout code & tests
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Install dependencies
+        run: |
+          pip uninstall conan -y
+          pip install -U conan==1.59.0
+          pip install -r requirements.txt
+          pip show pytest
+
+      - name: run tests sprint3 instrumentation
+        run: |
+          cd cpp-backend-tests-practicum/scripts/sprint3
+          ./instrumentation/run.sh
+
+      - name: run tests sprint3 gather-tests
+        run: |
+          cd cpp-backend-tests-practicum/scripts/sprint3
+          ./gather-tests/run.sh
+
+      - name: run tests sprint3 gather-tests_wrong1
+        run: |
+          cd cpp-backend-tests-practicum/scripts/sprint3
+          ./gather-tests_wrong1/run.sh
+
+      - name: run tests sprint3 gather-tests_wrong2
+        run: |
+          cd cpp-backend-tests-practicum/scripts/sprint3
+          ./gather-tests_wrong2/run.sh
+
+      - name: run tests sprint3 gather-tests_wrong3
+        run: |
+          cd cpp-backend-tests-practicum/scripts/sprint3
+          ./gather-tests_wrong3/run.sh
+
+      - name: run tests sprint3 gather-tests_wrong4
+        run: |
+          cd cpp-backend-tests-practicum/scripts/sprint3
+          ./gather-tests_wrong4/run.sh
+
+      - name: run tests sprint3 gather-tests_wrong5
+        run: |
+          cd cpp-backend-tests-practicum/scripts/sprint3
+          ./gather-tests_wrong5/run.sh
+
+      - name: run tests sprint3 gather
+        run: |
+          cd cpp-backend-tests-practicum/scripts/sprint3
+          ./gather/run.sh
+
+      - name: run tests sprint3 find_return
+        run: |
+          cd cpp-backend-tests-practicum/scripts/sprint3
+          ./find_return/run.sh
+
+      - name: run tests sprint3 scores
+        run: |
+          cd cpp-backend-tests-practicum/scripts/sprint3
+          ./scores/run.sh
+
+      - name: Publish XML reports
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          junit_files: ${{ github.workspace }}/*.xml
+
+  sprint_4:
+    runs-on: ubuntu-22.04
+    steps:
+
+      - name: Checkout code & tests
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Install dependencies
+        run: |
+          pip uninstall conan -y
+          pip install -U conan==1.59.0
+          pip install -r requirements.txt
+          pip show pytest
+
+      - name: run tests sprint4 state_serialization
+        run: |
+          cd cpp-backend-tests-practicum/scripts/sprint4
+          ./state_serialization/run.sh
+
+      - name: Publish XML reports
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          junit_files: ${{ github.workspace }}/*.xml
+
+
   sprint_4:
     runs-on: ubuntu-22.04
     steps:
