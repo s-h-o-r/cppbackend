@@ -83,8 +83,12 @@ PlayersRepr::PlayersRepr(const user::Players& players) {
 user::Players PlayersRepr::Restore(model::Game* game) const {
     user::Players restored_players;
     for (const PlayerRepr& player : players_) {
-        restored_players.Add(game->GetGameSession(player.map_id_)->GetDog(player.dog_id_),
-                             game->GetGameSession(player.map_id_));
+        auto* session = game->GetGameSession(player.map_id_);
+        if (session == nullptr) {
+            session = &game->StartGameSession(game->FindMap(player.map_id_));
+        }
+        restored_players.Add(session->GetDog(player.dog_id_),
+                             session);
     }
     return restored_players;
 }

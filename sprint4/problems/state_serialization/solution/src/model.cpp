@@ -585,7 +585,7 @@ GameSession& Game::StartGameSession(const Map* map) {
 }
 
 const GameSession* Game::GetGameSession(Map::Id map_id) const {
-    if (sessions_.at(map_id).empty()) {
+    if (!sessions_.contains(map_id)) {
         return nullptr;
     }
     return sessions_.at(map_id).back().get();
