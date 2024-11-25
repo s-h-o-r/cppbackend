@@ -249,7 +249,7 @@ class GameSession;
 
 class LootOfficeDogProvider : public collision_detector::ItemGathererProvider {
 public:
-    LootOfficeDogProvider(GameSession* session);
+    LootOfficeDogProvider(const Map::Offices& offices);
 
     size_t ItemsCount() const override;
     collision_detector::Item GetItem(size_t idx) const override;
@@ -259,15 +259,14 @@ public:
     void PushBackLoot(const Loot* loot);
     void EraseLoot(size_t idx);
     const std::variant<const Office*, const Loot*>& GetRawItemVal(size_t idx) const;
+    void AddDog(const Dog* dog);
     const Dog* GetDog(size_t idx) const;
 
 private:
     using LootId = size_t;
 
-    GameSession* game_session_;
-
     std::vector<std::variant<const Office*, const Loot*>> items_;
-    std::vector<Dog*> gatherers_;
+    std::vector<const Dog*> gatherers_;
 };
 
 class GameSession {
@@ -309,7 +308,7 @@ private:
 
     IdToLootIndex loot_;
     loot_gen::LootGenerator loot_generator_;
-    LootOfficeDogProvider items_gatherer_provider_{this};
+    LootOfficeDogProvider items_gatherer_provider_{map_->GetOffices()};
 
     std::atomic_int counter_{0};
 

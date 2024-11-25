@@ -296,9 +296,8 @@ game_obj::Bag<std::shared_ptr<Loot>>* Dog::GetBag() const {
     return &bag_;
 }
 
-LootOfficeDogProvider::LootOfficeDogProvider(GameSession* session)
-: game_session_(session) {
-    for (const auto& office : session->GetMap()->GetOffices()) {
+LootOfficeDogProvider::LootOfficeDogProvider(const Map::Offices& offices) {
+    for (const auto& office : offices) {
         items_.push_back(&office);
     }
 }
@@ -334,13 +333,15 @@ void LootOfficeDogProvider::PushBackLoot(const Loot* loot) {
 }
 
 void LootOfficeDogProvider::EraseLoot(size_t idx) {
-    const Loot* loot = std::get<const Loot*>(items_.at(idx));
-    game_session_->EraseLoot(loot->id);
     items_.erase(items_.begin() + idx);
 }
 
 const std::variant<const Office*, const Loot*>& LootOfficeDogProvider::GetRawItemVal(size_t idx) const {
     return items_.at(idx);
+}
+
+void LootOfficeDogProvider::AddDog(const Dog* dog) {
+    gatherers_.push_back(dog);
 }
 
 const Dog* LootOfficeDogProvider::GetDog(size_t idx) const {
@@ -372,7 +373,8 @@ Dog* GameSession::AddDog(std::string_view name) {
 
     auto dog = std::make_shared<Dog>(std::string(name), dog_pos, default_speed, map_->GetBagCapacity());
     auto dog_id = dog->GetId();
-    dogs_.emplace(dog_id, std::move(dog));
+    dogs_.emplace(dog_id, dog);
+    items_gatherer_provider_.AddDog(dog.get());
     return dogs_.at(dog_id).get();
 }
 
@@ -549,6 +551,7 @@ void GameSession::HandleCollisions() {
 
     // убираем из prvider и session весь лишний лут
     for (size_t id : items_to_erase) {
+        loot_.erase(std::get<const Loot*>(items_gatherer_provider_.GetRawItemVal(id))->id);
         items_gatherer_provider_.EraseLoot(id);
     }
 
