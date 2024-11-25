@@ -71,24 +71,29 @@ int main(int argc, const char* argv[]) {
 
         std::shared_ptr<serialization::SerializationListener> listener{nullptr};
         if (!cl_args.state_file.empty()) {
-            std::ifstream strm{cl_args.state_file, strm.binary};
-
-            if (strm.is_open()) {
-                try {
-                    boost::archive::binary_iarchive i_archive{strm};
-                    serialization::ApplicationRepr repr;
-                    i_archive >> repr;
-                    repr.Restore(&app);
-                } catch (...) {
-                    http_logger::LogServerError(boost::system::errc::errc_t::invalid_argument, 
-                                                "cannot restore model from save"sv, "restore"sv);
-                    throw;
+            std::filesystem::path state_file_path{cl_args.state_file};
+            if (std::filesystem::exists(state_file_path)) {
+                std::ifstream strm{state_file_path, strm.binary};
+                if (strm.is_open()) {
+                    try {
+                        boost::archive::binary_iarchive i_archive{strm};
+                        serialization::ApplicationRepr repr;
+                        i_archive >> repr;
+                        repr.Restore(&app);
+                    } catch (...) {
+                        http_logger::LogServerError(boost::system::errc::errc_t::invalid_argument,
+                                                    "cannot restore model from save"sv, "restore"sv);
+                        throw;
+                    }
+                    strm.close();
                 }
+            } else {
+                std::filesystem::create_directories(state_file_path.parent_path());
             }
-            strm.close();
             listener = std::make_shared<serialization::SerializationListener>
                 (std::chrono::milliseconds{cl_args.save_state_period}, &app, cl_args.state_file);
         }
+        app.SetListener(listener.get());
 
         // 2. Инициализируем io_context
         const unsigned num_threads = std::thread::hardware_concurrency();

@@ -1,6 +1,7 @@
 #include "model.h"
 
 #include <algorithm>
+#include <iostream>
 #include <cmath>
 #include <random>
 #include <stdexcept>
@@ -410,9 +411,14 @@ void GameSession::EraseLoot(Loot::Id loot_id) {
 }
 
 void GameSession::UpdateState(std::int64_t tick) {
-    UpdateDogsState(tick);
-    HandleCollisions();
-    GenerateLoot(tick);
+    try {
+        UpdateDogsState(tick);
+        GenerateLoot(tick);
+        HandleCollisions();
+        //GenerateLoot(tick);
+    } catch (...) {
+        std::cout << "handle error" << std::endl;
+    }
 }
 
 std::uint32_t GameSession::GetNextDogId() const {

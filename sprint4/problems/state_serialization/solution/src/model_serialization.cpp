@@ -115,7 +115,7 @@ void ApplicationRepr::Restore(app::Application* app) const {
 
 void SerializationListener::Serialize() const {
     std::filesystem::create_directories(state_file_path_.parent_path());
-    std::filesystem::path tmp_path = state_file_path_.parent_path() / "tmp.bin";
+    std::filesystem::path tmp_path = state_file_path_.parent_path() / "tmp";
     std::ofstream strm{tmp_path, strm.binary | strm.trunc};
 
     if (!strm.is_open()) {
