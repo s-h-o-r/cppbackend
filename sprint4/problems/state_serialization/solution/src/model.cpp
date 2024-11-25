@@ -411,14 +411,10 @@ void GameSession::EraseLoot(Loot::Id loot_id) {
 }
 
 void GameSession::UpdateState(std::int64_t tick) {
-    try {
-        UpdateDogsState(tick);
-        GenerateLoot(tick);
-        HandleCollisions();
-        //GenerateLoot(tick);
-    } catch (...) {
-        std::cout << "handle error" << std::endl;
-    }
+    UpdateDogsState(tick);
+    GenerateLoot(tick);
+    HandleCollisions();
+    //GenerateLoot(tick);
 }
 
 std::uint32_t GameSession::GetNextDogId() const {
@@ -534,7 +530,6 @@ void GameSession::HandleCollisions() {
         loot_.erase(std::get<const Loot*>(items_gatherer_provider_.GetRawLootVal(id))->id);
         items_gatherer_provider_.EraseLoot(id);
     }
-
 }
 
 void GameSession::GenerateLoot(std::int64_t tick) {
