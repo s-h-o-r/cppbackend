@@ -280,23 +280,19 @@ private:
                 });
 
                 auto& player_obj = game_state_json["players"].as_object()[std::to_string(*id)].as_object();
-                player_obj["bag"].emplace_array();
+                auto& bag = player_obj["bag"].emplace_array();
                 for (const auto& loot : dog->GetBag()->GetAllLoot()) {
-                    player_obj.insert_or_assign("bag", json::array{
-                        {"id", *loot.id},
-                        {"type", loot.type}
-                    });
+                    bag.emplace_back(json::object{{"id", *loot.id},
+                        {"type", loot.type}});
                 }
             }
 
             game_state_json["lostObjects"].emplace_object();
-            int loot_type_id = 0;
-            for (const auto& [_, loot_ptr] : self->app_.GetPlayerGameSession(token)->GetAllLoot()) {
-                game_state_json["lostObjects"].as_object().insert_or_assign(std::to_string(loot_type_id), json::object{
+            for (const auto& [id, loot_ptr] : self->app_.GetPlayerGameSession(token)->GetAllLoot()) {
+                game_state_json["lostObjects"].as_object().insert_or_assign(std::to_string(*id), json::object{
                     {"type", loot_ptr->type},
                     {"pos", {loot_ptr->point.x, loot_ptr->point.y}}
                 });
-                ++loot_type_id;
             }
 
             response.body() = json::serialize(json::value(std::move(game_state_json)));
