@@ -1,7 +1,5 @@
 #include "json_loader.h"
 
-#define BOOST_BEAST_USE_STD_STRING_VIEW
-
 namespace json_loader {
 
 using namespace std::literals;
@@ -22,9 +20,9 @@ Query ParseQuery(std::string query) {
     if (query_info.name == "add_book"s) {
         json::object payload = game_info.at("payload"sv).as_object();
         query_info.payload = book_manager::BookInfo{
-            .title{payload.at("title"sv).as_string()},
-            .author{payload.at("author"sv).as_string()},
-            .year = static_cast<int>(payload.at("year"sv).as_int64())};
+            .title = json::value_to<std::string>(payload.at("title"sv)),
+            .author = json::value_to<std::string>(payload.at("author"sv)),
+            .year = json::value_to<int>(payload.at("year"sv))};
 
         if (payload.at("ISBN").kind() != json::kind::null) {
             query_info.payload->isbn = payload.at("ISBN").as_string();
