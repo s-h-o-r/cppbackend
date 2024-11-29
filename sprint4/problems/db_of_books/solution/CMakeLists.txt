@@ -20,11 +20,16 @@ target_link_libraries(BookManagerLib PUBLIC CONAN_PKG::libpqxx PRIVATE Threads::
 target_link_libraries(BookManagerLib PUBLIC CONAN_PKG::boost PRIVATE Threads::Threads)
 
 add_executable(book_manager
+    src/request_handler.h
+    src/request_handler.cpp
+    src/boost_json.cpp
+    src/json_loader.h
+    src/json_loader.cpp
     src/main.cpp
 )
 
 add_executable(book_manager_tests
-    tests/test.cpp
+    tests/book_manager_test.cpp
 )
 
 target_link_libraries(book_manager PRIVATE BookManagerLib)
