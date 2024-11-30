@@ -15,7 +15,7 @@ using BookId = util::TaggedUUID<detail::BookTag>;
 
 class Book {
 public:
-    Book(BookId book_id, AuthorId author_id, std::string title, std::uint16_t publication_year)
+    Book(BookId book_id, AuthorId author_id, std::string title, int publication_year)
         : book_id_(book_id)
         , author_id_(author_id)
         , title_(title)
@@ -34,7 +34,7 @@ public:
         return title_;
     }
 
-    std::uint16_t GetPublicationYear() const noexcept {
+    int GetPublicationYear() const noexcept {
         return publication_year_;
     }
 
@@ -42,7 +42,7 @@ private:
     BookId book_id_;
     AuthorId author_id_;
     std::string title_;
-    std::uint16_t publication_year_;
+    int publication_year_;
 };
 
 class BookRepository {

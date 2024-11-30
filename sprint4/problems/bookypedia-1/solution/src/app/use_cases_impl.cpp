@@ -14,7 +14,7 @@ std::vector<domain::Author> UseCasesImpl::GetAuthors() {
     return authors_.GetAuthors();
 }
 
-void UseCasesImpl::AddBook(const std::string& author_id, const std::string& title, std::uint16_t publication_year) {
+void UseCasesImpl::AddBook(const std::string& author_id, const std::string& title, int publication_year) {
     books_.Save({BookId::New(), AuthorId::FromString(author_id), title, publication_year});
 }
 

@@ -68,7 +68,7 @@ bool View::AddAuthor(std::istream& cmd_input) const {
 bool View::AddBook(std::istream& cmd_input) const {
     try {
         if (auto params = GetBookParams(cmd_input)) {
-            use_cases_.AddBook(params->author_id, params->title, static_cast<std::uint16_t>(params->publication_year));
+            use_cases_.AddBook(params->author_id, params->title, params->publication_year);
         }
     } catch (const std::exception&) {
         output_ << "Failed to add book"sv << std::endl;

@@ -52,7 +52,7 @@ std::vector<domain::Book> BookRepositoryImpl::GetAllBooks() {
 
     std::vector<domain::Book> books;
     for (auto [book_id, author_id, title, publication_year]
-         : read.query<std::string, std::string, std::string, std::uint16_t>(query_text)) {
+         : read.query<std::string, std::string, std::string, int>(query_text)) {
         books.push_back({domain::BookId::FromString(book_id), domain::AuthorId::FromString(author_id),
             title, publication_year});
     }
@@ -65,7 +65,7 @@ std::vector<domain::Book> BookRepositoryImpl::GetAuthorBooks(const domain::Autho
 
     std::vector<domain::Book> books;
     for (auto [book_id, author_id, title, publication_year]
-         : read.query<std::string, std::string, std::string, std::uint16_t>(query_text, author_id.ToString())) {
+         : read.query<std::string, std::string, std::string, int>(query_text, author_id.ToString())) {
         books.push_back({domain::BookId::FromString(book_id), domain::AuthorId::FromString(author_id),
             title, publication_year});
     }
