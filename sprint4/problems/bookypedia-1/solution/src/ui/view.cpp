@@ -4,6 +4,8 @@
 #include <cassert>
 #include <iostream>
 
+#include "../domain/author.h"
+#include "../domain/book.h"
 #include "../app/use_cases.h"
 #include "../menu/menu.h"
 
@@ -66,7 +68,7 @@ bool View::AddAuthor(std::istream& cmd_input) const {
 bool View::AddBook(std::istream& cmd_input) const {
     try {
         if (auto params = GetBookParams(cmd_input)) {
-            assert(!"TODO: implement book adding");
+            use_cases_.AddBook(params->author_id, params->title, static_cast<std::uint16_t>(params->publication_year));
         }
     } catch (const std::exception&) {
         output_ << "Failed to add book"sv << std::endl;
@@ -140,19 +142,30 @@ std::optional<std::string> View::SelectAuthor() const {
 
 std::vector<detail::AuthorInfo> View::GetAuthors() const {
     std::vector<detail::AuthorInfo> dst_autors;
-    assert(!"TODO: implement GetAuthors()");
+
+    for (const auto& author : use_cases_.GetAuthors()) {
+        dst_autors.push_back({author.GetId().ToString(), author.GetName()});
+    }
     return dst_autors;
 }
 
 std::vector<detail::BookInfo> View::GetBooks() const {
     std::vector<detail::BookInfo> books;
-    assert(!"TODO: implement GetBooks()");
+
+    for (const auto& book : use_cases_.GetAllBooks()) {
+        books.push_back({book.GetTitle(), static_cast<int>(book.GetPublicationYear())});
+    }
+
     return books;
 }
 
 std::vector<detail::BookInfo> View::GetAuthorBooks(const std::string& author_id) const {
     std::vector<detail::BookInfo> books;
-    assert(!"TODO: implement GetAuthorBooks()");
+
+    for (const auto& book : use_cases_.GetAuthorBooks(author_id)) {
+        books.push_back({book.GetTitle(), static_cast<int>(book.GetPublicationYear())});
+    }
+
     return books;
 }
 
