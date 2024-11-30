@@ -3,6 +3,9 @@
 #include "../domain/book_fwd.h"
 #include "use_cases.h"
 
+#include <string>
+#include <vector>
+
 namespace app {
 
 class UseCasesImpl : public UseCases {

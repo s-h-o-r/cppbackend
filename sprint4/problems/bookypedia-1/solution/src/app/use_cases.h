@@ -4,6 +4,7 @@
 #include "../domain/book_fwd.h"
 
 #include <string>
+#include <vector>
 
 namespace app {
 
