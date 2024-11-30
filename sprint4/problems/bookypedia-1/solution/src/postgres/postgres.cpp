@@ -85,7 +85,7 @@ CREATE TABLE IF NOT EXISTS authors (
     work.exec(R"(
 CREATE TABLE IF NOT EXISTS books (
     id UUID CONSTRAINT books_id_constraint PRIMARY KEY,
-    author_id UUID UNIQUE NOT NULL,
+    author_id UUID NOT NULL,
     title varchar(100) NOT NULL,
     publication_year INTEGER
 );
