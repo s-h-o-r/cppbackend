@@ -97,9 +97,6 @@ bool View::ShowAuthorBooks() const {
     // TODO: handle error
     try {
         if (auto author_id = SelectAuthor()) {
-            if (!author_id.has_value()) {
-                throw std::logic_error("Failed to Show Books");
-            }
             PrintVector(output_, GetAuthorBooks(*author_id));
         }
     } catch (const std::exception&) {
