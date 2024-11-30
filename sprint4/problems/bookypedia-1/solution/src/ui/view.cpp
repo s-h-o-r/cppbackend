@@ -72,6 +72,9 @@ bool View::AddAuthor(std::istream& cmd_input) const {
 bool View::AddBook(std::istream& cmd_input) const {
     try {
         if (auto params = GetBookParams(cmd_input)) {
+            if (params->title.empty()) {
+                throw std::runtime_error("Empty author name");
+            }
             use_cases_.AddBook(params->author_id, params->title, params->publication_year);
         }
     } catch (const std::exception&) {
