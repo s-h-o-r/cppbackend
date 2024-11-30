@@ -48,7 +48,7 @@ ON CONFLICT (id) DO UPDATE SET author_id=$2, title=$3, publication_year=$4;
 
 std::vector<domain::Book> BookRepositoryImpl::GetAllBooks() {
     pqxx::read_transaction read{connection_};
-    auto query_text = "SELECT id, name FROM books ORDER BY title"_zv;
+    auto query_text = "SELECT id, author_id, title, publication_year FROM books ORDER BY title"_zv;
 
     std::vector<domain::Book> books;
     for (auto [book_id, author_id, title, publication_year]
