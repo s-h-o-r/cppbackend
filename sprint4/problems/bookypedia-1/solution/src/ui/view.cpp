@@ -94,6 +94,9 @@ bool View::ShowAuthorBooks() const {
     // TODO: handle error
     try {
         if (auto author_id = SelectAuthor()) {
+            if (!author_id.has_value()) {
+                throw std::logic_error("Failed to Show Books");
+            }
             PrintVector(output_, GetAuthorBooks(*author_id));
         }
     } catch (const std::exception&) {
@@ -157,7 +160,7 @@ std::vector<detail::BookInfo> View::GetBooks() const {
     std::vector<detail::BookInfo> books;
 
     for (const auto& book : use_cases_.GetAllBooks()) {
-        books.push_back({book.GetTitle(), static_cast<int>(book.GetPublicationYear())});
+        books.push_back({book.GetTitle(), book.GetPublicationYear()});
     }
 
     return books;
@@ -167,7 +170,7 @@ std::vector<detail::BookInfo> View::GetAuthorBooks(const std::string& author_id)
     std::vector<detail::BookInfo> books;
 
     for (const auto& book : use_cases_.GetAuthorBooks(author_id)) {
-        books.push_back({book.GetTitle(), static_cast<int>(book.GetPublicationYear())});
+        books.push_back({book.GetTitle(), book.GetPublicationYear()});
     }
 
     return books;
