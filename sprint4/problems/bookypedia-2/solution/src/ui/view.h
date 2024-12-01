@@ -46,7 +46,7 @@ private:
     domain::AuthorId AddAuthor(std::string name) const;
     bool AddBook(std::istream& cmd_input) const;
 
-    bool DeleteAuthor() const;
+    bool DeleteAuthor(std::istream& cmd_input) const;
     //bool DeleteBook() const;
 
     bool ShowAuthors() const;

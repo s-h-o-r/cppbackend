@@ -43,7 +43,7 @@ std::optional<domain::Author> AuthorRepositoryImpl::GetAuthor(const std::string&
     return std::nullopt;
 }
 
-void Delete(const AuthorId& author_id) {
+void AuthorRepositoryImpl::Delete(const domain::AuthorId& author_id) {
     work_.exec_params("DELETE FROM authors WHERE id = $1"_zv, author_id.ToString());
 }
 
@@ -79,7 +79,7 @@ std::vector<domain::Book> BookRepositoryImpl::GetAuthorBooks(const domain::Autho
     return books;
 }
 
-void BookRepositoryImpl::Delete(const domain::BookId& book_id) override {
+void BookRepositoryImpl::Delete(const domain::BookId& book_id) {
     work_.exec_params("DELETE FROM books WHERE id = $1"_zv, book_id.ToString());
 }
 
@@ -87,7 +87,7 @@ void TagRepositoryImpl::Save(domain::BookId book_id, std::string tag) {
     work_.exec_params("INSERT INTO book_tags (book_id, tag) VALUES ($1, $2)"_zv, book_id.ToString(), tag);
 }
 
-void TagRepositoryImpl::Delete(const BookId& book_id) {
+void TagRepositoryImpl::Delete(const domain::BookId& book_id) {
     work_.exec_params("DELETE FROM book_tags WHERE book_id = $1"_zv, book_id.ToString());
 }
 

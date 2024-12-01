@@ -55,6 +55,7 @@ View::View(menu::Menu& menu, app::UseCases& use_cases, std::istream& input, std:
     menu_.AddAction("ShowBooks"s, {}, "Show books"s, std::bind(&View::ShowBooks, this));
     menu_.AddAction("ShowAuthorBooks"s, {}, "Show author books"s,
                     std::bind(&View::ShowAuthorBooks, this));
+    menu_.AddAction("DeleteAuthor"s, "<name> (optional)"s, "Delete author and all his books"s, std::bind(&View::DeleteAuthor, this, ph::_1));
 }
 
 bool View::AddAuthor(std::istream& cmd_input) const {
@@ -102,7 +103,7 @@ bool View::DeleteAuthor(std::istream& cmd_input) const {
     try {
         use_cases_.StartTransaction();
         std::string author_name;
-        std::getline(cmd_input, author_name)
+        std::getline(cmd_input, author_name);
         boost::algorithm::trim(author_name);
 
         std::optional<std::string> author_id;
@@ -114,13 +115,13 @@ bool View::DeleteAuthor(std::istream& cmd_input) const {
             if (!author) {
                 throw std::runtime_error("Unknown author to delete");
             }
-            author_id = author->id_.ToString();
+            author_id = author->GetId().ToString();
         }
 
         if (author_id) {
-            DeleteAuthorBooks(author_id);
-            use_cases_.DeleteAuthor(author_id);
-            use_cases_.Commit()
+            DeleteAuthorBooks(*author_id);
+            use_cases_.DeleteAuthor(*author_id);
+            use_cases_.Commit();
         }
     } catch (const std::exception&) {
         output_ << "Failed to delete author"sv << std::endl;
@@ -224,7 +225,7 @@ std::vector<detail::BookInfo> View::GetBooks() const {
     std::vector<detail::BookInfo> books;
 
     for (const auto& book : use_cases_.GetAllBooks()) {
-        books.push_back({book.book_id_.ToString(), book.GetTitle(), book.GetPublicationYear()});
+        books.push_back({book.GetBookId().ToString(), book.GetTitle(), book.GetPublicationYear()});
     }
 
     return books;
@@ -234,7 +235,7 @@ std::vector<detail::BookInfo> View::GetAuthorBooks(const std::string& author_id)
     std::vector<detail::BookInfo> books;
 
     for (const auto& book : use_cases_.GetAuthorBooks(author_id)) {
-        books.push_back({book.book_id_.ToString(), book.GetTitle(), book.GetPublicationYear()});
+        books.push_back({book.GetBookId().ToString(), book.GetTitle(), book.GetPublicationYear()});
     }
 
     return books;
