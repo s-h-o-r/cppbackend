@@ -13,6 +13,7 @@ public:
     virtual void Commit() = 0;
     virtual domain::AuthorRepository& Authors() = 0;
     virtual domain::BookRepository& Books() = 0;
+    virtual domain::TagRepository& Tags() = 0;
 };
 
 class UnitOfWorkFactory {

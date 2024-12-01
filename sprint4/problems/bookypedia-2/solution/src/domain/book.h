@@ -50,9 +50,19 @@ public:
     virtual void Save(const Book& book) = 0;
     virtual std::vector<Book> GetAllBooks() = 0;
     virtual std::vector<Book> GetAuthorBooks(const AuthorId& author_id) = 0;
+    virtual void Delete(const BookId& book_id) = 0;
 
 protected:
     ~BookRepository() = default;
+};
+
+class TagRepository {
+public:
+    virtual void Save(BookId book_id, std::string tag) = 0;
+    virtual void Delete(const BookId& book_id) = 0;
+
+protected:
+    ~TagRepository() = default;
 };
 
 }  // namespace domain

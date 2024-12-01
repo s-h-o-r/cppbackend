@@ -6,4 +6,6 @@ class Author;
 
 class AuthorRepository;
 
+class TagRepository;
+
 }  // namespace domain

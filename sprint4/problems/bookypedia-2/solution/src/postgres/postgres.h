@@ -16,6 +16,9 @@ public:
 
     void Save(const domain::Author& author) override;
     std::vector<domain::Author> GetAuthors() override;
+    std::optional<domain::Author> GetAuthor(const std::string& name) override;
+    void Delete(const domain::AuthorId& author_id) override;
+
 private:
     pqxx::work& work_;
 };
@@ -29,6 +32,20 @@ public:
     void Save(const domain::Book& book) override;
     std::vector<domain::Book> GetAllBooks() override;
     std::vector<domain::Book> GetAuthorBooks(const domain::AuthorId& author_id) override;
+    void Delete(const domain::BookId& book_id) override;
+
+private:
+    pqxx::work& work_;
+};
+
+class TagRepositoryImpl : public domain::TagRepository {
+public:
+    explicit TagRepositoryImpl(pqxx::work& work)
+        : work_(work) {
+    }
+
+    void Save(domain::BookId book_id, std::string tag) override;
+    void Delete(const domain::BookId& book_id) override;
 
 private:
     pqxx::work& work_;
@@ -39,7 +56,8 @@ public:
     UnitOfWorkImpl(pqxx::connection& conn)
     : work_(conn)
     , authors_(work_)
-    , books_(work_) {
+    , books_(work_)
+    , book_tags_(work_) {
     }
 
     void Commit() override {
@@ -54,10 +72,15 @@ public:
         return books_;
     }
 
+    domain::TagRepository& Tags() override {
+        return book_tags_;
+    }
+
 private:
     pqxx::work work_;
     AuthorRepositoryImpl authors_;
     BookRepositoryImpl books_;
+    TagRepositoryImpl book_tags_;
 };
 
 class UnitOfWorkFactoryImpl : public app::UnitOfWorkFactory {

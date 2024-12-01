@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+#include "../domain/author.h"
+
 namespace menu {
 class Menu;
 }
@@ -19,6 +21,7 @@ struct AddBookParams {
     std::string title;
     std::string author_id;
     int publication_year = 0;
+    std::vector<std::string> tags;
 };
 
 struct AuthorInfo {
@@ -27,6 +30,7 @@ struct AuthorInfo {
 };
 
 struct BookInfo {
+    std::string id;
     std::string title;
     int publication_year;
 };
@@ -39,7 +43,12 @@ public:
 
 private:
     bool AddAuthor(std::istream& cmd_input) const;
+    domain::AuthorId AddAuthor(std::string name) const;
     bool AddBook(std::istream& cmd_input) const;
+
+    bool DeleteAuthor() const;
+    //bool DeleteBook() const;
+
     bool ShowAuthors() const;
     bool ShowBooks() const;
     bool ShowAuthorBooks() const;
@@ -49,11 +58,15 @@ private:
     std::vector<detail::AuthorInfo> GetAuthors() const;
     std::vector<detail::BookInfo> GetBooks() const;
     std::vector<detail::BookInfo> GetAuthorBooks(const std::string& author_id) const;
+    std::vector<std::string> GetBookTags(std::istream& cmd_input) const;
+    void DeleteTags(const std::string& book_id) const;
+    void DeleteAuthorBooks(const std::string& author_id) const;
 
     menu::Menu& menu_;
     app::UseCases& use_cases_;
     std::istream& input_;
     std::ostream& output_;
+    
 };
 
 }  // namespace ui

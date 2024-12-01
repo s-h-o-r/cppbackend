@@ -2,6 +2,6 @@
 
 #include <pqxx/pqxx>
 
-namespace postgres {
-
+namespace app {
+class UnitOfWork;
 }
