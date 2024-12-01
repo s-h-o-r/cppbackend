@@ -1,6 +1,5 @@
 #pragma once
-#include "../domain/author_fwd.h"
-#include "../domain/book_fwd.h"
+#include "../postgres/postgres.h"
 #include "use_cases.h"
 
 #include <string>
@@ -10,9 +9,8 @@ namespace app {
 
 class UseCasesImpl : public UseCases {
 public:
-    explicit UseCasesImpl(domain::AuthorRepository& authors, domain::BookRepository& books)
-        : authors_{authors}
-        , books_(books) {
+    explicit UseCasesImpl(postgres::Database& db)
+        : db_(db) {
     }
 
     void AddAuthor(const std::string& name) override;
@@ -20,10 +18,8 @@ public:
     void AddBook(const std::string& author_id, const std::string& title, int publication_year) override;
     std::vector<domain::Book> GetAllBooks() override;
     std::vector<domain::Book> GetAuthorBooks(const std::string& author_id) override;
-
 private:
-    domain::AuthorRepository& authors_;
-    domain::BookRepository& books_;
+    postgres::Database& db_;
 };
 
 }  // namespace app

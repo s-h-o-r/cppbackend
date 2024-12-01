@@ -3,7 +3,6 @@
 #include <iostream>
 
 #include "menu/menu.h"
-#include "postgres/postgres.h"
 #include "ui/view.h"
 
 namespace bookypedia {
@@ -11,7 +10,8 @@ namespace bookypedia {
 using namespace std::literals;
 
 Application::Application(const AppConfig& config)
-    : db_{pqxx::connection{config.db_url}} {
+    : db_{pqxx::connection{config.db_url}}
+    , use_cases_(db_) {
 }
 
 void Application::Run() {
