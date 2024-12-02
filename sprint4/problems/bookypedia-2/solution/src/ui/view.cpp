@@ -191,13 +191,11 @@ bool View::EditBook(std::istream& cmd_input) const {
         if (book_id) {
             detail::AddBookParams new_book_info = GetBookParamsForEdit(*book_id);
             use_cases_.EditBook(*book_id, new_book_info.author_id, new_book_info.title, new_book_info.publication_year);
-
-            if (auto new_tags = new_book_info.tags; !new_tags.empty()) {
-                DeleteTags(*book_id);
-                for (const auto& tag : new_tags) {
-                    use_cases_.AddTag(*book_id, tag);
-                }
+            DeleteTags(*book_id);
+            for (const auto& tag : new_book_info.tags) {
+                use_cases_.AddTag(*book_id, tag);
             }
+            
             use_cases_.Commit();
         }
     } catch (const std::exception&) {
