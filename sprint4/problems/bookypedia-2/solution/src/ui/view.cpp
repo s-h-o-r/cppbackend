@@ -476,8 +476,8 @@ std::vector<detail::BookInfoWithAuthor> View::GetBooksByTitle(const std::string&
     std::vector<detail::BookInfoWithAuthor> books;
     for (const auto& book : use_cases_.GetBooksByTitle(title)) {
         auto author = use_cases_.GetAuthorById(book.GetAuthorId().ToString());
-        books.push_back({.title = book.GetTitle(), .author_name = author->GetName(),
-            .id = book.GetBookId().ToString(), .publication_year = book.GetPublicationYear()});
+        books.push_back(detail::BookInfoWithAuthor{.id = book.GetBookId().ToString(), .title = book.GetTitle(),
+            .publication_year = book.GetPublicationYear(), .author_name = author->GetName()});
     }
     return books;
 }
