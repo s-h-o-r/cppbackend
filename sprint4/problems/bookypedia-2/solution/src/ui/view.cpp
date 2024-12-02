@@ -291,21 +291,21 @@ detail::AddBookParams View::GetBookParamsForEdit(const std::string& book_id) con
 
     output_ << "Enter new title or empty line to use the current one ("sv << book->GetTitle() << "):"sv << std::endl;
     std::string str;
-    if (std::getline(input_, str) || !str.empty()) {
+    if (std::getline(input_, str) && !str.empty()) {
         new_book_info.title = str;
     } else {
         new_book_info.title = book->GetTitle();
     }
 
     output_ << "Enter publication year or empty line to use the current one ("sv << book->GetPublicationYear() << "):"sv << std::endl;
-    if (std::getline(input_, str) || !str.empty()) {
+    if (std::getline(input_, str) && !str.empty()) {
         try {
             new_book_info.publication_year = std::stoi(str);
         } catch (std::exception const&) {
             throw std::runtime_error("Invalid publication year");
         }
     } else {
-        book->GetPublicationYear();
+        new_book_info.publication_year = book->GetPublicationYear();
     }
 
     output_ << "Enter tags (current tags: "sv;
