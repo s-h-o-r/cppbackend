@@ -197,6 +197,8 @@ bool View::EditBook(std::istream& cmd_input) const {
             }
 
             use_cases_.Commit();
+        } else {
+            output_ << "Book not found"sv << std::endl;
         }
     } catch (const std::exception&) {
         output_ << "Book not found"sv << std::endl;
@@ -258,7 +260,7 @@ std::optional<detail::AddBookParams> View::GetBookParams(std::istream& cmd_input
         boost::algorithm::trim_all(author_name);
         auto author = use_cases_.GetAuthorByName(author_name);
         if (!author) {
-            output_ << "No author found. Do you want to add "sv << author->GetName() << " (y/n)?"sv << std::endl;
+            output_ << "No author found. Do you want to add "sv << author_name << " (y/n)?"sv << std::endl;
             std::string answer;
             if (!std::getline(input_, answer) || answer.empty() || answer.size() > 1 || std::tolower(answer[0]) != 'y') {
                 throw std::runtime_error("Cannot identify book's author");
