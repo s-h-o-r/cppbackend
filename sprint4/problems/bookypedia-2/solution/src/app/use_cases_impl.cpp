@@ -98,7 +98,12 @@ void UseCasesImpl::StartTransaction() {
 
 void UseCasesImpl::Commit() {
     CheckTransaction();
-    transaction_->Commit();
+    try {
+        transaction_->Commit();
+    } catch (const std::exception& e) {
+        transaction_->Abort();
+        throw e;
+    }
 }
 
 }  // namespace app

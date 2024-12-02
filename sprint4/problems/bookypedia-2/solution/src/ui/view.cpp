@@ -1,7 +1,7 @@
 #include "view.h"
 
 #include <algorithm>
-#include <boost/algorithm/string/trim.hpp>
+#include <boost/algorithm/string/trim_all.hpp>
 #include <cassert>
 #include <iostream>
 
@@ -102,7 +102,7 @@ bool View::AddAuthor(std::istream& cmd_input) const {
 }
 
 domain::AuthorId View::AddAuthor(std::string name) const {
-        boost::algorithm::trim(name);
+        boost::algorithm::trim_all(name);
 
         if (name.empty()) {
             throw std::runtime_error("Empty author name");
@@ -248,12 +248,12 @@ std::optional<detail::AddBookParams> View::GetBookParams(std::istream& cmd_input
 
     cmd_input >> params.publication_year;
     std::getline(cmd_input, params.title);
-    boost::algorithm::trim(params.title);
+    boost::algorithm::trim_all(params.title);
 
     output_ << "Enter author name or empty line to select from list:"sv << std::endl;
     std::string author_name;
     if (std::getline(input_, author_name) || !author_name.empty()) {
-        boost::algorithm::trim(author_name);
+        boost::algorithm::trim_all(author_name);
         auto author = use_cases_.GetAuthorByName(author_name);
         if (!author) {
             output_ << "No author found. Do you want to add Jack London (y/n)?"sv << std::endl;
@@ -378,12 +378,12 @@ std::optional<std::string> View::SelectBook() const {
 std::optional<std::string> View::GetOrSelectAuthor(std::istream& cmd_input) const {
     std::string author_name;
     std::getline(cmd_input, author_name);
-    boost::algorithm::trim(author_name);
+    boost::algorithm::trim_all(author_name);
 
     std::optional<std::string> author_id;
 
     if (author_name.empty()) {
-        auto author_id = SelectAuthor();
+        author_id = SelectAuthor();
     } else {
         auto author = use_cases_.GetAuthorByName(author_name);
         if (!author) {
@@ -397,7 +397,7 @@ std::optional<std::string> View::GetOrSelectAuthor(std::istream& cmd_input) cons
 std::optional<std::string> View::GetOrSelectBook(std::istream& cmd_input) const {
     std::string book_title;
     std::getline(cmd_input, book_title);
-    boost::algorithm::trim(book_title);
+    boost::algorithm::trim_all(book_title);
 
     std::optional<std::string> book_id;
 
@@ -496,7 +496,7 @@ std::vector<std::string> View::GetBookTags() const {
     std::vector<std::string> tags;
     std::string tag;
     while (std::getline(input_, tag, ',')) {
-        boost::algorithm::trim(tag);
+        boost::algorithm::trim_all(tag);
         if (!tag.empty() && std::find(tags.begin(), tags.end(), tag) == tags.end()) {
             tags.push_back(tag);
         }

@@ -69,6 +69,10 @@ public:
         work_.commit();
     }
 
+    void Abort() override {
+        work_.abort();
+    }
+
     domain::AuthorRepository& Authors() override {
         return authors_;
     }
