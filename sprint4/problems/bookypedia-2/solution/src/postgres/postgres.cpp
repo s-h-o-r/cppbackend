@@ -34,7 +34,7 @@ std::vector<domain::Author> AuthorRepositoryImpl::GetAuthors() {
     return authors;
 }
 
-std::optional<domain::Author> AuthorRepositoryImpl::GetAuthor(const std::string& name) {
+std::optional<domain::Author> AuthorRepositoryImpl::GetAuthorByName(const std::string& name) {
     auto query_text = "SELECT id, name FROM authors WHERE name = $1"_zv;
 
     if (std::optional res = work_.query01<std::string, std::string>(query_text, name)) {
@@ -43,8 +43,21 @@ std::optional<domain::Author> AuthorRepositoryImpl::GetAuthor(const std::string&
     return std::nullopt;
 }
 
+std::optional<domain::Author> AuthorRepositoryImpl::GetAuthorById(const domain::AuthorId& author_id) {
+    auto query_text = "SELECT id, name FROM authors WHERE id = $1"_zv;
+
+    if (std::optional res = work_.query01<std::string, std::string>(query_text, author_id.ToString())) {
+        return domain::Author{domain::AuthorId::FromString(std::get<0>(*res)), std::get<1>(*res)};
+    }
+    return std::nullopt;
+}
+
 void AuthorRepositoryImpl::Delete(const domain::AuthorId& author_id) {
     work_.exec_params("DELETE FROM authors WHERE id = $1"_zv, author_id.ToString());
+}
+
+void AuthorRepositoryImpl::Edit(const domain::Author& edited_author) {
+    work_.exec_params("UPDATE authors SET name = $2 WHERE id = $1"_zv, edited_author.GetId().ToString(), edited_author.GetName());
 }
 
 void BookRepositoryImpl::Save(const domain::Book& book) {
@@ -56,7 +69,12 @@ ON CONFLICT (id) DO UPDATE SET author_id=$2, title=$3, publication_year=$4;
 }
 
 std::vector<domain::Book> BookRepositoryImpl::GetAllBooks() {
-    auto query_text = "SELECT id, author_id, title, publication_year FROM books ORDER BY title"_zv;
+    auto query_text = R"(
+SELECT book.id, book.author_id, book.title, book.publication_year, author.name 
+FROM books book
+JOIN authors author ON book.author_id = author.id
+ORDER BY book.title, author.name, book.publication_year
+)"_zv;
 
     std::vector<domain::Book> books;
     for (auto [book_id, author_id, title, publication_year]
@@ -83,12 +101,48 @@ void BookRepositoryImpl::Delete(const domain::BookId& book_id) {
     work_.exec_params("DELETE FROM books WHERE id = $1"_zv, book_id.ToString());
 }
 
+std::vector<domain::Book> BookRepositoryImpl::GetBooksByTitle(const std::string& title) {
+    auto query_text = "SELECT id, author_id, title, publication_year FROM books WHERE title = $1"_zv;
+
+    std::vector<domain::Book> books;
+
+    for (auto [book_id, author_id, title, publication_year] :
+         work_.query<std::string, std::string, std::string, int>(query_text, title)) {
+        books.push_back(domain::Book{domain::BookId::FromString(book_id), domain::AuthorId::FromString(author_id),
+            title, publication_year});
+    }
+    return books;
+}
+
+std::optional<domain::Book> BookRepositoryImpl::GetBookById(const domain::BookId& book_id) {
+    auto query_text = "SELECT id, author_id, title, publication_year FROM books WHERE id = $1"_zv;
+
+    if (std::optional res = work_.query01<std::string, std::string, std::string, int>(query_text, book_id.ToString())) {
+        return domain::Book{domain::BookId::FromString(std::get<0>(*res)), domain::AuthorId::FromString(std::get<1>(*res)),
+                            std::get<2>(*res), std::get<3>(*res)};
+    }
+    return std::nullopt;
+}
+
+void BookRepositoryImpl::Edit(const domain::Book& edited_book) {
+    work_.exec_params("UPDATE books SET title = $2, publication_year = $3 WHERE id = $1"_zv,
+                      edited_book.GetBookId().ToString(), edited_book.GetTitle(), edited_book.GetPublicationYear());
+}
+
 void TagRepositoryImpl::Save(domain::BookId book_id, std::string tag) {
     work_.exec_params("INSERT INTO book_tags (book_id, tag) VALUES ($1, $2)"_zv, book_id.ToString(), tag);
 }
 
 void TagRepositoryImpl::Delete(const domain::BookId& book_id) {
     work_.exec_params("DELETE FROM book_tags WHERE book_id = $1"_zv, book_id.ToString());
+}
+
+std::vector<std::string> TagRepositoryImpl::GetBookTags(const domain::BookId& book_id) {
+    std::vector<std::string> tags;
+
+    for (auto [tag] : work_.query<std::string>("SELECT tag FROM book_tags WHERE book_id = $1"_zv, book_id.ToString())) {
+        tags.push_back(tag);
+    }
 }
 
 Database::Database(pqxx::connection connection)

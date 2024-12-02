@@ -40,6 +40,17 @@ void UseCasesImpl::DeleteBookTags(const std::string& book_id) {
     transaction_->Tags().Delete(domain::BookId::FromString(book_id));
 }
 
+void UseCasesImpl::EditAuthor(const std::string& author_id, const std::string& new_author_name) {
+    CheckTransaction();
+    transaction_->Authors().Edit(domain::Author(domain::AuthorId::FromString(author_id), new_author_name));
+}
+
+void UseCasesImpl::EditBook(const std::string& book_id, const std::string& author_id, const std::string& new_book_title, int new_publication_year) {
+    CheckTransaction();
+    transaction_->Books().Edit(domain::Book{domain::BookId::FromString(book_id), domain::AuthorId::FromString(author_id),
+        new_book_title, new_publication_year});
+}
+
 std::vector<domain::Author> UseCasesImpl::GetAuthors() {
     CheckTransaction();
     return transaction_->Authors().GetAuthors();
@@ -50,14 +61,34 @@ std::vector<domain::Book> UseCasesImpl::GetAllBooks() {
     return transaction_->Books().GetAllBooks();
 }
 
+std::vector<std::string> UseCasesImpl::GetBookTags(const std::string& book_id) {
+    CheckTransaction();
+    return transaction_->Tags().GetBookTags(domain::BookId::FromString(book_id));
+}
+
 std::vector<domain::Book> UseCasesImpl::GetAuthorBooks(const std::string& author_id) {
     CheckTransaction();
     return transaction_->Books().GetAuthorBooks(AuthorId::FromString(author_id));
 }
 
-std::optional<domain::Author> UseCasesImpl::GetAuthor(const std::string& name) {
+std::optional<domain::Author> UseCasesImpl::GetAuthorByName(const std::string& name) {
     CheckTransaction();
-    return transaction_->Authors().GetAuthor(name);
+    return transaction_->Authors().GetAuthorByName(name);
+}
+
+std::optional<domain::Author> UseCasesImpl::GetAuthorById(const std::string& author_id) {
+    CheckTransaction();
+    return transaction_->Authors().GetAuthorById(domain::AuthorId::FromString(author_id));
+}
+
+std::vector<domain::Book> UseCasesImpl::GetBooksByTitle(const std::string& title) {
+    CheckTransaction();
+    return transaction_->Books().GetBooksByTitle(title);
+}
+
+std::optional<domain::Book> UseCasesImpl::GetBookById(const std::string& book_id) {
+    CheckTransaction();
+    return transaction_->Books().GetBookById(domain::BookId::FromString(book_id));
 }
 
 void UseCasesImpl::StartTransaction() {
