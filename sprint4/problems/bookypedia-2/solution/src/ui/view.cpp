@@ -511,6 +511,7 @@ std::vector<std::string> View::GetBookTags() const {
 
         prev_pos = cur_pos + 1;
     }
+    std::sort(parsed_tags.begin(), parsed_tags.end());
     return parsed_tags;
 }
 
