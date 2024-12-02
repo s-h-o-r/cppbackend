@@ -197,8 +197,6 @@ bool View::EditBook(std::istream& cmd_input) const {
             }
 
             use_cases_.Commit();
-        } else {
-            output_ << "Book not found"sv << std::endl;
         }
     } catch (const std::exception&) {
         output_ << "Book not found"sv << std::endl;
