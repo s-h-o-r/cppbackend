@@ -158,7 +158,7 @@ bool View::DeleteBook(std::istream& cmd_input) const {
             use_cases_.Commit();
         }
     } catch (const std::exception&) {
-        output_ << "Failed to delete book"sv << std::endl;
+        output_ << "Book not found"sv << std::endl;
     }
     return true;
 }
@@ -191,9 +191,12 @@ bool View::EditBook(std::istream& cmd_input) const {
         if (book_id) {
             detail::AddBookParams new_book_info = GetBookParamsForEdit(*book_id);
             use_cases_.EditBook(*book_id, new_book_info.author_id, new_book_info.title, new_book_info.publication_year);
-            DeleteTags(*book_id);
-            for (const auto& tag : new_book_info.tags) {
-                use_cases_.AddTag(*book_id, tag);
+
+            if (auto new_tags = new_book_info.tags; !new_tags.empty()) {
+                DeleteTags(*book_id);
+                for (const auto& tag : new_tags) {
+                    use_cases_.AddTag(*book_id, tag);
+                }
             }
             use_cases_.Commit();
         }
@@ -239,7 +242,7 @@ bool View::ShowBook(std::istream& cmd_input) const {
             }
         }
     } catch (const std::exception&) {
-        throw std::runtime_error("Failed to Show Book");
+        throw std::runtime_error("Book not found");
     }
     return true;
 }
@@ -523,8 +526,8 @@ void View::DeleteAuthorBooks(const std::string& author_id) const {
     auto books = GetAuthorBooks(author_id);
 
     for (const auto& book_info : books) {
-        use_cases_.DeleteBook(book_info.id);
         DeleteTags(book_info.id);
+        use_cases_.DeleteBook(book_info.id);
     }
 }
 
