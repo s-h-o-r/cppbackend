@@ -4,6 +4,7 @@
 #include <boost/algorithm/string/trim_all.hpp>
 #include <cassert>
 #include <iostream>
+#include <string>
 
 #include "../domain/author.h"
 #include "../domain/book.h"
@@ -252,7 +253,7 @@ std::optional<detail::AddBookParams> View::GetBookParams(std::istream& cmd_input
 
     output_ << "Enter author name or empty line to select from list:"sv << std::endl;
     std::string author_name;
-    if (std::getline(input_, author_name) || !author_name.empty()) {
+    if (std::getline(input_, author_name) && !author_name.empty()) {
         boost::algorithm::trim_all(author_name);
         auto author = use_cases_.GetAuthorByName(author_name);
         if (!author) {
@@ -402,7 +403,7 @@ std::optional<std::string> View::GetOrSelectBook(std::istream& cmd_input) const 
     std::optional<std::string> book_id;
 
     if (book_title.empty()) {
-        auto book_id = SelectBook();
+        book_id = SelectBook();
     } else {
         auto books = GetBooksByTitle(book_title);
         if (books.empty()) {
@@ -493,15 +494,24 @@ std::vector<detail::BookInfo> View::GetAuthorBooks(const std::string& author_id)
 }
 
 std::vector<std::string> View::GetBookTags() const {
-    std::vector<std::string> tags;
-    std::string tag;
-    while (std::getline(input_, tag, ',')) {
+    std::vector<std::string> parsed_tags;
+    std::string tags;
+    std::getline(input_, tags);
+
+    size_t prev_pos = 0;
+    size_t cur_pos = 0;
+    while (cur_pos != std::string::npos) {
+        cur_pos = tags.find_first_of(',', prev_pos);
+        std::string tag = tags.substr(prev_pos, cur_pos - prev_pos);
         boost::algorithm::trim_all(tag);
-        if (!tag.empty() && std::find(tags.begin(), tags.end(), tag) == tags.end()) {
-            tags.push_back(tag);
+        
+        if (!tag.empty() && std::find(parsed_tags.begin(), parsed_tags.end(), tag) == parsed_tags.end()) {
+            parsed_tags.push_back(tag);
         }
+
+        prev_pos = cur_pos + 1;
     }
-    return tags;
+    return parsed_tags;
 }
 
 void View::DeleteTags(const std::string& book_id) const {

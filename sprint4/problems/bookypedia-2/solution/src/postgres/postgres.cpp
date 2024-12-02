@@ -70,7 +70,7 @@ ON CONFLICT (id) DO UPDATE SET author_id=$2, title=$3, publication_year=$4;
 
 std::vector<domain::Book> BookRepositoryImpl::GetAllBooks() {
     auto query_text = R"(
-SELECT book.id, book.author_id, book.title, book.publication_year, author.name 
+SELECT book.id, book.author_id, book.title, book.publication_year 
 FROM books book
 JOIN authors author ON book.author_id = author.id
 ORDER BY book.title, author.name, book.publication_year
@@ -143,6 +143,7 @@ std::vector<std::string> TagRepositoryImpl::GetBookTags(const domain::BookId& bo
     for (auto [tag] : work_.query<std::string>("SELECT tag FROM book_tags WHERE book_id = $1"_zv, book_id.ToString())) {
         tags.push_back(tag);
     }
+    return tags;
 }
 
 Database::Database(pqxx::connection connection)
