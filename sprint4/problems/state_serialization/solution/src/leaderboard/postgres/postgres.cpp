@@ -46,23 +46,23 @@ SELECT id, name, score, play_time_ms FROM retired_players ORDER BY score DESC, p
 }
 
 void Database::Init() {
-    auto connection_wrapper = connection_pool_.GetConnection();
-    pqxx::work work{*connection_wrapper};
-    work.exec(R"(
-CREATE TABLE IF NOT EXISTS retired_players (
-id UUID PRIMARY KEY,
-name varchar(100) NOT NULL,
-score INTEGER DEFAULT(0) NOT NULL,
-play_time_ms INTEGER DEFAULT(0) NOT NULL
-);
-)"_zv);
-
-    work.exec(R"(
-CREATE INDEX IF NOT EXISTS score_time_name_idx ON retired_players 
-(score DESC, play_time_ms, name);
-)"_zv);
-
-    work.commit();
+//    auto connection_wrapper = connection_pool_.GetConnection();
+//    pqxx::work work{*connection_wrapper};
+//    work.exec(R"(
+//CREATE TABLE IF NOT EXISTS retired_players (
+//id UUID PRIMARY KEY,
+//name varchar(100) NOT NULL,
+//score INTEGER DEFAULT(0) NOT NULL,
+//play_time_ms INTEGER DEFAULT(0) NOT NULL
+//);
+//)"_zv);
+//
+//    work.exec(R"(
+//CREATE INDEX IF NOT EXISTS score_time_name_idx ON retired_players 
+//(score DESC, play_time_ms, name);
+//)"_zv);
+//
+//    work.commit();
 }
 
 }  // namespace postgres

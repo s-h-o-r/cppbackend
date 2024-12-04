@@ -52,13 +52,13 @@ constexpr const char DB_URL_ENV_NAME[]{"GAME_DB_URL"};
 
 leaderboard::LeaderboardConfig GetConfigFromEnv() {
     leaderboard::LeaderboardConfig config;
-    const unsigned num_threads = std::thread::hardware_concurrency();
-    config.connection_pool_capacity = std::max(1u, num_threads);
-    if (const auto* url = std::getenv(DB_URL_ENV_NAME)) {
-        config.db_url = url;
-    } else {
-        throw std::runtime_error(DB_URL_ENV_NAME + " environment variable not found"s);
-    }
+//    const unsigned num_threads = std::thread::hardware_concurrency();
+//    config.connection_pool_capacity = std::max(1u, num_threads);
+//    if (const auto* url = std::getenv(DB_URL_ENV_NAME)) {
+//        config.db_url = url;
+//    } else {
+//        throw std::runtime_error(DB_URL_ENV_NAME + " environment variable not found"s);
+//    }
     return config;
 }
 
