@@ -182,6 +182,24 @@ std::string ParseMapToJson(const model::Map* map) {
     return json::serialize(json::value_from(*map));
 }
 
+std::unordered_map<std::string, std::string> ParseQuery(std::string_view query) {
+    std::unordered_map<std::string, std::string> query_map;
+
+    size_t prev_pos = 0;
+    size_t cur_pos = 0;
+
+    while (cur_pos != std::string_view::npos) {
+        cur_pos = query.find('&', prev_pos);
+        size_t delim = query.find('=', prev_pos);
+        query_map.emplace(std::string(query.substr(prev_pos, delim - prev_pos)),
+                          std::string(query.substr(delim + 1, cur_pos - delim - 1)));
+
+        prev_pos = cur_pos + 1;
+    }
+
+    return query_map;
+}
+
 void ApiRequestHandler::ProcessApiMaps(StringResponse& response,
                                        std::string_view target) const {
     if (target.size() > 12 && target[12] != '/') {

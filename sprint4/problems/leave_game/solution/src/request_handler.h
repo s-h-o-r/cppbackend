@@ -175,13 +175,7 @@ private:
                 switch (req.method()) {
                     case http::verb::post:
                         if (manual_update_) {
-                            try {
-                                ProcessApiTick(req, response);
-                            } catch (...) {
-                                response.set(http::field::content_type, ContentType::APP_JSON);
-                                response.content_length(response.body().size());
-                                response.result(http::status::ok);
-                            }
+                            ProcessApiTick(req, response);
                         } else {
                             MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::bad_request,
                                                  "Invalid endpoint"sv);
@@ -371,7 +365,11 @@ private:
             return;
         }
 
-        app_.ProcessTick(request_body.as_object().at("timeDelta").as_int64());
+        try {
+            app_.ProcessTick(request_body.as_object().at("timeDelta").as_int64());
+        } catch (const std::exception& e) {
+            response.body() = "{\"message\":\""s + e.what() + "\"}"s;
+        }
 
         response.body() = "{}"sv;
 

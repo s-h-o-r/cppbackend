@@ -34,6 +34,10 @@ Token PlayerTokens::AddPlayer(Player* player) {
     return token;
 }
 
+void PlayerTokens::DeletePlayer(const Token& token) {
+    token_to_player_.erase(token);
+}
+
 Player* PlayerTokens::FindPlayerByToken(const Token& token) {
     if (token_to_player_.contains(token)) {
         return token_to_player_.at(token);
@@ -53,6 +57,15 @@ Player& Players::Add(model::Dog* dog, const model::GameSession* session) {
     Player* player = players_.back().get();
     map_to_dog_to_player_[session->GetMapId()][dog->GetId()] = player;
     return *player;
+}
+
+void Players::Delete(Player* player) {
+    map_to_dog_to_player_.at(player->GetGameSession()->GetMap()->GetId())
+        .erase(player->GetDog()->GetId());
+
+    players_.erase(std::find_if(players_.begin(), players_.end(), [&player] (auto val) {
+        return val.get() == player;
+    }));
 }
 
 Player* Players::FindByDogIdAndMapId(model::Dog::Id dog_id, model::Map::Id map_id) {

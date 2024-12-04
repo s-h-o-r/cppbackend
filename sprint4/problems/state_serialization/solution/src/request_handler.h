@@ -83,6 +83,7 @@ void FillBasicInfo(Request& req, Response& response) {
 
 std::string_view GetMimeType(Extention extention);
 std::string ParseMapToJson(const model::Map* map);
+std::unordered_map<std::string, std::string> ParseQuery(std::string_view query);
 
 using StringResponse = http::response<http::string_body>;
 using FileResponse = http::response<http::file_body>;
@@ -115,7 +116,7 @@ private:
         FillBasicInfo(req, response);
         response.set(http::field::cache_control, "no-cache");
         try {
-            
+
             if (target.substr(0, 12) == "/api/v1/maps"sv) {
                 switch (req.method()) {
                     case http::verb::get:
@@ -186,6 +187,16 @@ private:
                                              "Invalid method"sv);
                         break;
                 }
+            } else if (target.substr(0, 20) == "/api/v1/game/records"sv) {
+                switch (req.method()) {
+                    case http::verb::get:
+                    case http::verb::head:
+                        ProcessGetRecords(req, response);
+                        break;
+                    default:
+                        MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::invalid_method_get_head,
+                                             "Invalid method"sv);
+                }
             } else {
                 MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::bad_request,
                                      "Bad request"sv);
@@ -193,6 +204,7 @@ private:
         } catch (...) {
             MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::bad_request,
                                  "Uknown error"sv);
+            throw;
         }
 
         send(response);
@@ -353,9 +365,53 @@ private:
             return;
         }
 
-        app_.ProcessTick(request_body.as_object().at("timeDelta").as_int64());
+        try {
+            app_.ProcessTick(request_body.as_object().at("timeDelta").as_int64());
+        } catch (const std::exception& e) {
+            response.body() = "{\"message\":\""s + e.what() + "\"}"s;
+        }
 
         response.body() = "{}"sv;
+
+        response.set(http::field::content_type, ContentType::APP_JSON);
+        response.content_length(response.body().size());
+        response.result(http::status::ok);
+    }
+
+    template <typename Request>
+    void ProcessGetRecords(Request& request, StringResponse& response) {
+        using namespace std::literals;
+
+        auto target = request.target();
+        size_t delim_params = target.find('?');
+        auto params = ParseQuery(target.substr(delim_params + 1));
+
+        int start = 0;
+        if (params.contains("start"s)) {
+            start = std::stoi(params.at("start"s));
+        }
+
+        int max_items = 100;
+        if (params.contains("maxItems"s)) {
+            max_items = std::stoi(params.at("maxItems"s));
+        }
+
+        if (max_items > 100) {
+            MakeErrorApiResponse(response, ErrorCode::bad_request, "Imposible to show more then 100 players on 1 list"sv);
+        }
+
+        auto leaderboard = app_.GetLeaders(start, max_items);
+
+        json::array body;
+        for (const auto& player_info : leaderboard) {
+            body.push_back(json::object{
+                {"name", player_info.GetName()},
+                {"score", player_info.GetScore()},
+                {"playTime", static_cast<double>(player_info.GetPlayTimeInMs()/1000.)}
+            });
+        }
+
+        response.body() = json::serialize(json::value(body));
 
         response.set(http::field::content_type, ContentType::APP_JSON);
         response.content_length(response.body().size());

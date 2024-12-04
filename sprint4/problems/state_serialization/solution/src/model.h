@@ -225,8 +225,8 @@ public:
     bool IsStopped() const;
 
     game_obj::Bag<Loot>* GetBag();
-    void AddScore(std::uint64_t score_to_add);
-    std::uint64_t GetScore() const;
+    void AddScore(std::uint16_t score_to_add);
+    std::uint16_t GetScore() const;
 
 private:
     Id id_;
@@ -238,7 +238,7 @@ private:
     double width_ = 0.6;
 
     game_obj::Bag<Loot> bag_;
-    std::uint64_t score_ = 0;
+    std::uint16_t score_ = 0;
 };
 
 struct LootConfig {
@@ -259,6 +259,7 @@ public:
     void EraseLoot(size_t idx);
     const std::variant<const Office*, const Loot*>& GetRawLootVal(size_t idx) const;
     void AddGatherer(Dog* gatherer);
+    void EraseGatherer(Dog* gatherer);
     const Dog* GetDog(size_t idx) const;
     Dog* GetDog(size_t idx);
 
@@ -266,6 +267,11 @@ public:
 private:
     std::vector<std::variant<const Office*, const Loot*>> items_;
     std::vector<Dog*> gatherers_;
+};
+
+class GameSessionListener {
+public:
+    virtual void DogMove(Dog* dog, std::int64_t tick, bool move) = 0;
 };
 
 class GameSession {
@@ -294,6 +300,7 @@ public:
     const Map::Id& GetMapId() const;
     const model::Map* GetMap() const;
     Dog* AddDog(std::string_view name);
+    void DeleteDog(const Dog::Id& id);
     const Dog* GetDog(Dog::Id id) const;
     Dog* GetDog(Dog::Id id);
     const IdToDogIndex& GetDogs() const;
@@ -308,6 +315,10 @@ public:
 
     void Restore(IdToDogIndex&& dogs, std::uint32_t next_dog_id, IdToLootIndex&& loot, std::uint32_t next_loot_id);
 
+    void SetListener(GameSessionListener* listener) {
+        listener_ = listener;
+    }
+
 private:
     const Map* map_;
     IdToDogIndex dogs_;
@@ -318,6 +329,8 @@ private:
     std::uint32_t next_loot_id_ = 0;
     loot_gen::LootGenerator loot_generator_;
     LootOfficeDogProvider items_gatherer_provider_{map_->GetOffices()};
+
+    GameSessionListener* listener_ = nullptr;
 
     void UpdateDogsState(std::int64_t tick);
     void HandleCollisions();
@@ -348,7 +361,10 @@ public:
 
     void TurnOnRandomSpawn();
     void TurnOffRandomSpawn();
-    
+
+    void SetRetirementTime(double retirement_time);
+    double GetRetirementTime() const noexcept;
+
     void SetDogSpeed(double default_speed);
     double GetDefaultGogSpeed() const noexcept;
 
@@ -357,6 +373,10 @@ public:
 
     bool IsDogSpawnRandom() const;
 
+    void SetGameSessionListener(GameSessionListener* listener) {
+        listener_ = listener;
+    }
+
     void UpdateState(std::int64_t tick);
 
 private:
@@ -364,12 +384,15 @@ private:
     std::vector<Map> maps_;
     MapIdToIndex map_id_to_index_;
 
+    double dog_retirement_time_ = 60.0;
     double default_dog_speed_ = 1.;
     bool random_dog_spawn_ = false;
 
     LootConfig loot_config_;
 
     SessionsByMaps sessions_;
+
+    GameSessionListener* listener_ = nullptr;
 };
 
 }  // namespace model

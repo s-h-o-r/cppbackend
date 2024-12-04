@@ -101,7 +101,7 @@ private:
     geom::Vec2D speed_;
     model::Direction dir_ = model::Direction::NORTH;
     BagRepr bag_;
-    std::uint64_t score_ = 0;
+    std::uint16_t score_ = 0;
 };
 
 class GameSessionRepr {

@@ -295,11 +295,11 @@ game_obj::Bag<Loot>* Dog::GetBag() {
     return &bag_;
 }
 
-void Dog::AddScore(std::uint64_t score_to_add) {
+void Dog::AddScore(std::uint16_t score_to_add) {
     score_ += score_to_add;
 }
 
-std::uint64_t Dog::GetScore() const {
+std::uint16_t Dog::GetScore() const {
     return score_;
 }
 
@@ -353,6 +353,9 @@ void LootOfficeDogProvider::AddGatherer(Dog* gatherer) {
     gatherers_.push_back(gatherer);
 }
 
+void LootOfficeDogProvider::EraseGatherer(Dog* gatherer) {
+    gatherers_.erase(std::find(gatherers_.begin(), gatherers_.end(), gatherer));
+}
 
 const Dog* LootOfficeDogProvider::GetDog(size_t idx) const {
     return gatherers_.at(idx);
@@ -390,6 +393,11 @@ Dog* GameSession::AddDog(std::string_view name) {
     return dogs_.at(dog_id).get();
 }
 
+void GameSession::DeleteDog(const Dog::Id& id) {
+    items_gatherer_provider_.EraseGatherer(dogs_.at(id).get());
+    dogs_.erase(id);
+}
+
 const Dog* GameSession::GetDog(Dog::Id id) const {
     return dogs_.at(id).get();
 }
@@ -414,7 +422,6 @@ void GameSession::UpdateState(std::int64_t tick) {
     UpdateDogsState(tick);
     GenerateLoot(tick);
     HandleCollisions();
-    //GenerateLoot(tick);
 }
 
 std::uint32_t GameSession::GetNextDogId() const {
@@ -446,6 +453,9 @@ void GameSession::UpdateDogsState(std::int64_t tick) {
 
     for (auto [_, dog] : dogs_) {
         if (dog->IsStopped()) {
+            if (listener_ != nullptr) {
+                listener_->DogMove(dog.get(), tick, false);
+            }
             continue;
         }
 
@@ -496,7 +506,11 @@ void GameSession::UpdateDogsState(std::int64_t tick) {
                 }
             }
         }
+
         dog->SetPosition(relevant_point);
+        if (listener_ != nullptr) {
+            listener_->DogMove(dog.get(), tick, true);
+        }
         if (stopped) {
             dog->Stop();
         }
@@ -575,6 +589,7 @@ GameSession& Game::StartGameSession(const Map* map) {
     using namespace std::chrono_literals;
     if (sessions_[map->GetId()].empty()) {
         sessions_[map->GetId()].push_back(std::make_shared<GameSession>(map, random_dog_spawn_, loot_config_));
+        sessions_[map->GetId()].back()->SetListener(listener_);
     }
     return *sessions_[map->GetId()].back();
 }
@@ -605,6 +620,14 @@ void Game::TurnOnRandomSpawn() {
 
 void Game::TurnOffRandomSpawn() {
     random_dog_spawn_ = false;
+}
+
+void Game::SetRetirementTime(double retirement_time) {
+    dog_retirement_time_ = retirement_time;
+}
+
+double Game::GetRetirementTime() const noexcept {
+    return dog_retirement_time_;
 }
 
 void Game::SetDogSpeed(double default_speed) {

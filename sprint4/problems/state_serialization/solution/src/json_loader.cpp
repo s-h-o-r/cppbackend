@@ -124,6 +124,9 @@ model::Game LoadGame(const std::filesystem::path& json_path) {
     auto loot_config = game_info.at("lootGeneratorConfig"sv).as_object();
     game.SetLootConfig(loot_config.at("period"sv).as_double(), loot_config.at("probability"sv).as_double());
 
+    if (game_info.as_object().count("dogRetirementTime"sv)) {
+        game.SetRetirementTime(game_info.at("dogRetirementTime"sv).as_double());
+    }
     return game;
 }
 

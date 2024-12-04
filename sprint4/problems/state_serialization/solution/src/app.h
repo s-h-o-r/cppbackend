@@ -4,10 +4,12 @@
 
 #include "player.h"
 #include "model.h"
+#include "./leaderboard/leaderboard.h"
 
 #include <chrono>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace serialization {
 class ApplicationRepr;
@@ -153,11 +155,47 @@ private:
 };
 
 //**************************************************************
+//DeletePlayerUseCase
+
+class DeletePlayerUseCase {
+public:
+    explicit DeletePlayerUseCase(model::Game* game, user::Players* players, user::PlayerTokens* player_tokens)
+        : game_(game)
+        , players_(players)
+        , player_tokens_(player_tokens){
+    }
+
+    void DeletePlayer(const std::string& token);
+
+private:
+    model::Game* game_;
+    user::Players* players_;
+    user::PlayerTokens* player_tokens_;
+};
+
+//**************************************************************
+//LeaderboardUseCase
+
+class LeaderboardUseCase {
+public:
+    explicit LeaderboardUseCase(leaderboard::Leaderboard* leaderboard)
+        : leaderboard_(leaderboard) {
+    }
+
+    void SaveToLeaderboard(const std::string& name, std::uint16_t score, std::uint16_t time_in_game_ms);
+    std::vector<domain::RetiredPlayer> GetLeaders(size_t start, size_t max_players);
+
+private:
+    leaderboard::Leaderboard* leaderboard_;
+};
+
+//**************************************************************
 //ApplicationListener Interface
 
 class ApplicationListener {
 public:
     virtual void OnTick(std::chrono::milliseconds delta) = 0;
+    virtual void OnJoin(std::string token, model::Dog* dog) {}
 
 protected:
     ~ApplicationListener() = default;
@@ -171,7 +209,13 @@ public:
     friend class serialization::ApplicationRepr;
 
     explicit Application(model::Game* game)
-        : game_(game) {
+    : game_(game) {
+
+    }
+
+    explicit Application(model::Game* game, const leaderboard::LeaderboardConfig& config)
+        : game_(game)
+        , leaderboard_(std::make_shared<leaderboard::Leaderboard>(config)) {
     }
 
     const model::Game::Maps& ListMaps() const;
@@ -181,6 +225,9 @@ public:
     JoinGameResult JoinGame(const std::string& user_name, const std::string& map_id);
     bool MoveDog(std::string_view token, std::string_view move);
     void ProcessTick(std::int64_t tick);
+    void DeletePlayer(const std::string& player_token);
+    void SaveToLeaderboard(const std::string& name, std::uint16_t score, std::uint16_t time_in_game_ms);
+    std::vector<domain::RetiredPlayer> GetLeaders(size_t start, size_t max_players);
 
     bool IsTokenValid(std::string_view token) const;
     void SetListener(ApplicationListener* listener);
@@ -190,7 +237,9 @@ private:
     user::Players players_;
     user::PlayerTokens tokens_;
 
-    ApplicationListener* listener_ = nullptr;
+    std::shared_ptr<leaderboard::Leaderboard> leaderboard_ = nullptr;
+
+    std::vector<ApplicationListener*> listeners_;
 
     // create all scenario below
     GetMapUseCase get_map_use_case_{game_};
@@ -199,6 +248,12 @@ private:
     JoinGameUseCase join_game_use_case_{game_, &players_, &tokens_};
     ManageDogActionsUseCase manage_dog_actions_use_case_{&players_, &tokens_};
     ProcessTickUseCase process_tick_use_case_{game_};
+    DeletePlayerUseCase delete_player_use_case_{game_, &players_, &tokens_};
+    LeaderboardUseCase leaderboard_use_case_{leaderboard_.get()};
+
+    void NotifyListenersTick(std::int64_t tick) const;
+    void NotifyListenersJoin(std::string token, model::Dog* dog) const;
+    void NotifyListenersMove(model::Dog* dog, std::string_view move) const;
 };
 
 } // namespace app
