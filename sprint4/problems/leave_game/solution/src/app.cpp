@@ -154,7 +154,7 @@ JoinGameResult Application::JoinGame(const std::string& user_name, const std::st
 bool Application::MoveDog(std::string_view token, std::string_view move) {
     if (manage_dog_actions_use_case_.MoveDog(token, move)) {
         model::Dog* dog = tokens_.FindPlayerByToken(user::Token{std::string(token)})->GetDog();
-        //NotifyListenersMove(dog, move);
+        NotifyListenersMove(dog, move);
         return true;
     }
     return false;
@@ -162,7 +162,7 @@ bool Application::MoveDog(std::string_view token, std::string_view move) {
 
 void Application::ProcessTick(std::int64_t tick) {
     process_tick_use_case_.ProcessTick(tick);
-    NotifyListenersTick(tick);
+    //NotifyListenersTick(tick);
 }
 
 void Application::DeletePlayer(const std::string& player_token) {
@@ -197,13 +197,17 @@ void Application::NotifyListenersTick(std::int64_t tick) const {
 
 void Application::NotifyListenersJoin(std::string token, model::Dog* dog) const {
     for (auto* listener : listeners_) {
-        listener->OnJoin(token, dog);
+        if (listener != nullptr) {
+            listener->OnJoin(token, dog);
+        }
     }
 }
 
 void Application::NotifyListenersMove(model::Dog* dog, std::string_view move) const {
     for (auto* listener : listeners_) {
-        listener->OnMove(dog, move);
+        if (listener != nullptr) {
+            listener->OnMove(dog, move);
+        }
     }
 }
 
