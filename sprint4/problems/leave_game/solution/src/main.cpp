@@ -48,7 +48,7 @@ void RunWorkers(unsigned n, const Fn& fn) {
     #endif
 }
 
-constexpr const char DB_URL_ENV_NAME[]{"LEADERBOARD_DB_URL"};
+constexpr const char DB_URL_ENV_NAME[]{"GAME_DB_URL"};
 
 leaderboard::LeaderboardConfig GetConfigFromEnv() {
     leaderboard::LeaderboardConfig config;
