@@ -202,7 +202,7 @@ private:
                                      "Bad request"sv);
             }
         } catch (...) {
-            MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::invalid_argument,
+            MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::bad_request,
                                  "Uknown error"sv);
         }
 
