@@ -114,11 +114,11 @@ int main(int argc, const char* argv[]) {
 
         // настройка и установка RetirePlayerListener
 
-        std::shared_ptr<retirement::RetirementListener> retirement_listener
-        = std::make_shared<retirement::RetirementListener>(game.GetRetirementTime() , &app);
-        
-        app.SetListener(retirement_listener.get());
-        game.SetGameSessionListener(retirement_listener.get());
+//        std::shared_ptr<retirement::RetirementListener> retirement_listener
+//        = std::make_shared<retirement::RetirementListener>(game.GetRetirementTime() , &app);
+//        
+//        app.SetListener(retirement_listener.get());
+//        game.SetGameSessionListener(retirement_listener.get());
 
         // 2. Инициализируем io_context
         const unsigned num_threads = std::thread::hardware_concurrency();
