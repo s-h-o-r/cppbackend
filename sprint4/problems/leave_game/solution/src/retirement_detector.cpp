@@ -16,12 +16,12 @@ void RetirementListener::OnTick(std::chrono::milliseconds delta) {
     std::vector<detail::LeaderboardInfo> to_database;
 
     for (auto& [dog, statistic] : dog_retirement_) {
+        statistic.time_in_game += delta.count();
         if (statistic.no_action_time >= retirement_time_) {
             dog_for_retirement.push_back(dog);
             to_database.push_back({dog->GetName(), dog->GetScore(), statistic.time_in_game});
             continue;
         }
-        statistic.time_in_game += delta.count();
     }
 
     for (auto& info : to_database) {
