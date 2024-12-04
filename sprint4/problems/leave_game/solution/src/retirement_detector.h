@@ -22,6 +22,7 @@ struct LeaderboardInfo {
 struct RetirementStatistic {
     std::uint16_t time_in_game = 0;
     std::uint16_t no_action_time = 0;
+    bool on_move = false;
 };
 
 class RetirementListener : public app::ApplicationListener {
@@ -34,6 +35,7 @@ public:
 
     void OnTick(std::chrono::milliseconds delta) override;
     void OnJoin(std::string token, model::Dog* dog) override;
+    void OnMove(model::Dog* dog, std::string_view move) override;
 
 private:
     std::uint64_t retirement_time_;

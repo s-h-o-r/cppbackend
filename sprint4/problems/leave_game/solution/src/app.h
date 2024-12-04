@@ -196,6 +196,7 @@ class ApplicationListener {
 public:
     virtual void OnTick(std::chrono::milliseconds delta) = 0;
     virtual void OnJoin(std::string token, model::Dog* dog) {}
+    virtual void OnMove(model::Dog* dog, std::string_view move) {}
 
 protected:
     ~ApplicationListener() = default;
@@ -253,6 +254,7 @@ private:
 
     void NotifyListenersTick(std::int64_t tick) const;
     void NotifyListenersJoin(std::string token, model::Dog* dog) const;
+    void NotifyListenersMove(model::Dog* dog, std::string_view move) const;
 };
 
 } // namespace app

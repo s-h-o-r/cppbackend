@@ -9,10 +9,13 @@ void RetirementListener::OnTick(std::chrono::milliseconds delta) {
     for (auto& [dog, statistic] : dog_retirement_) {
         statistic.time_in_game += delta.count();
 
-        if (dog->IsStopped()) {
-            statistic.no_action_time += delta.count();
-        } else {
+        if (statistic.on_move) {
             statistic.no_action_time = 0;
+            if (dog->IsStopped()) {
+                statistic.on_move = false;
+            }
+        } else {
+            statistic.no_action_time += delta.count();
         }
 
         if (statistic.no_action_time >= retirement_time_) {
@@ -36,4 +39,13 @@ void RetirementListener::OnJoin(std::string token, model::Dog* dog) {
     dog_retirement_[dog] = {0, 0};
     dog_to_token_[dog] = std::move(token);
 }
+
+void RetirementListener::OnMove(model::Dog* dog, std::string_view move) {
+    if (move.empty()) {
+        dog_retirement_.at(dog).on_move = false;
+    } else {
+        dog_retirement_.at(dog).on_move = true;
+    }
+}
+
 }
