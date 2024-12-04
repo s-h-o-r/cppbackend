@@ -295,11 +295,11 @@ game_obj::Bag<Loot>* Dog::GetBag() {
     return &bag_;
 }
 
-void Dog::AddScore(std::uint64_t score_to_add) {
+void Dog::AddScore(std::uint16_t score_to_add) {
     score_ += score_to_add;
 }
 
-std::uint64_t Dog::GetScore() const {
+std::uint16_t Dog::GetScore() const {
     return score_;
 }
 

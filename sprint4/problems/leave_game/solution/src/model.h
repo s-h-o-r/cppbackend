@@ -225,8 +225,8 @@ public:
     bool IsStopped() const;
 
     game_obj::Bag<Loot>* GetBag();
-    void AddScore(std::uint64_t score_to_add);
-    std::uint64_t GetScore() const;
+    void AddScore(std::uint16_t score_to_add);
+    std::uint16_t GetScore() const;
 
 private:
     Id id_;
@@ -238,7 +238,7 @@ private:
     double width_ = 0.6;
 
     game_obj::Bag<Loot> bag_;
-    std::uint64_t score_ = 0;
+    std::uint16_t score_ = 0;
 };
 
 struct LootConfig {

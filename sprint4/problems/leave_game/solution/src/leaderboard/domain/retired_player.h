@@ -17,7 +17,7 @@ using PlayerId = util::TaggedUUID<detail::PlayerTag>;
 
 class RetiredPlayer {
 public:
-    RetiredPlayer(PlayerId player_id, const std::string& name, std::uint64_t score, std::uint64_t play_time_ms)
+    RetiredPlayer(PlayerId player_id, const std::string& name, std::uint16_t score, std::uint16_t play_time_ms)
         : player_id_(player_id)
         , name_(name)
         , score_(score)
@@ -32,19 +32,19 @@ public:
         return name_;
     }
 
-    std::uint64_t GetScore() const noexcept {
+    std::uint16_t GetScore() const noexcept {
         return score_;
     }
 
-    std::uint64_t GetPlayTimeInMs() const noexcept {
+    std::uint16_t GetPlayTimeInMs() const noexcept {
         return play_time_ms_;
     }
 
 private:
     PlayerId player_id_;
     std::string name_;
-    std::uint64_t score_;
-    std::uint64_t play_time_ms_;
+    std::uint16_t score_;
+    std::uint16_t play_time_ms_;
 };
 
 class RetiredPlayersRepository {

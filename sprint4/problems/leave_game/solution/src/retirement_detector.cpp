@@ -20,7 +20,7 @@ void RetirementListener::OnTick(std::chrono::milliseconds delta) {
 
         if (statistic.no_action_time >= retirement_time_) {
             dog_for_retirement.push_back(dog);
-            to_database.push_back({dog->GetName(), static_cast<uint16_t>(dog->GetScore()), statistic.time_in_game});
+            to_database.push_back({dog->GetName(), dog->GetScore(), statistic.time_in_game});
         }
     }
 
