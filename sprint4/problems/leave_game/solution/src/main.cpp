@@ -4,6 +4,7 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/system/errc.hpp>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -12,9 +13,11 @@
 #include "app.h"
 #include "cl_parser.h"
 #include "json_loader.h"
+#include "./leaderboard/leaderboard.h"
 #include "logger.h"
 #include "model.h"
 #include "model_serialization.h"
+#include "retirement_detector.h"
 #include "request_handler.h"
 #include "ticker.h"
 
@@ -45,6 +48,20 @@ void RunWorkers(unsigned n, const Fn& fn) {
     #endif
 }
 
+constexpr const char DB_URL_ENV_NAME[]{"LEADERBOARD_DB_URL"};
+
+leaderboard::LeaderboardConfig GetConfigFromEnv() {
+    leaderboard::LeaderboardConfig config;
+    const unsigned num_threads = std::thread::hardware_concurrency();
+    config.connection_pool_capacity = std::max(1u, num_threads);
+    if (const auto* url = std::getenv(DB_URL_ENV_NAME)) {
+        config.db_url = url;
+    } else {
+        throw std::runtime_error(DB_URL_ENV_NAME + " environment variable not found"s);
+    }
+    return config;
+}
+
 }  // namespace
 
 int main(int argc, const char* argv[]) {
@@ -63,7 +80,7 @@ int main(int argc, const char* argv[]) {
     try {
         // 1. Загружаем карту из файла и построить модель игры
         model::Game game = json_loader::LoadGame(cl_args.config_file_path);
-        app::Application app(&game);
+        app::Application app(&game, GetConfigFromEnv());
 
         if (cl_args.random_spawn_point) {
             game.TurnOnRandomSpawn();
@@ -94,6 +111,13 @@ int main(int argc, const char* argv[]) {
                 (std::chrono::milliseconds{cl_args.save_state_period}, &app, cl_args.state_file);
         }
         app.SetListener(listener.get());
+
+        // настройка и установка RetirePlayerListener
+
+        std::shared_ptr<retirement::RetirementListener> retirement_listener
+        = std::make_shared<retirement::RetirementListener>(game.GetRetirementTime() , &app);
+        
+        app.SetListener(retirement_listener.get());
 
         // 2. Инициализируем io_context
         const unsigned num_threads = std::thread::hardware_concurrency();

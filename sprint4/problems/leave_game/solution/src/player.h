@@ -55,6 +55,7 @@ public:
     PlayerTokens& operator=(const PlayerTokens&) = delete;
 
     Token AddPlayer(Player* player);
+    void DeletePlayer(const Token& token);
     Player* FindPlayerByToken(const Token& token);
     const Player* FindPlayerByToken(const Token& token) const;
 
@@ -82,6 +83,7 @@ public:
     using PlayersList = std::vector<std::shared_ptr<Player>>;
 
     Player& Add(model::Dog* dog, const model::GameSession* session);
+    void Delete(Player* player);
     Player* FindByDogIdAndMapId(model::Dog::Id dog_id, model::Map::Id map_id);
     const PlayersList& GetAllPlayers() const;
 private:

@@ -259,6 +259,7 @@ public:
     void EraseLoot(size_t idx);
     const std::variant<const Office*, const Loot*>& GetRawLootVal(size_t idx) const;
     void AddGatherer(Dog* gatherer);
+    void EraseGatherer(Dog* gatherer);
     const Dog* GetDog(size_t idx) const;
     Dog* GetDog(size_t idx);
 
@@ -294,6 +295,7 @@ public:
     const Map::Id& GetMapId() const;
     const model::Map* GetMap() const;
     Dog* AddDog(std::string_view name);
+    void DeleteDog(const Dog::Id& id);
     const Dog* GetDog(Dog::Id id) const;
     Dog* GetDog(Dog::Id id);
     const IdToDogIndex& GetDogs() const;
@@ -348,7 +350,10 @@ public:
 
     void TurnOnRandomSpawn();
     void TurnOffRandomSpawn();
-    
+
+    void SetRetirementTime(double retirement_time);
+    double GetRetirementTime() const noexcept;
+
     void SetDogSpeed(double default_speed);
     double GetDefaultGogSpeed() const noexcept;
 
@@ -364,6 +369,7 @@ private:
     std::vector<Map> maps_;
     MapIdToIndex map_id_to_index_;
 
+    double dog_retirement_time_ = 60.0;
     double default_dog_speed_ = 1.;
     bool random_dog_spawn_ = false;
 

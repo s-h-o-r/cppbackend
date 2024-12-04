@@ -114,6 +114,21 @@ void ProcessTickUseCase::ProcessTick(std::int64_t tick) {
     game_->UpdateState(tick);
 }
 
+void DeletePlayerUseCase::DeletePlayer(const std::string& token) {
+    user::Player* player = player_tokens_->FindPlayerByToken(user::Token{token});
+    game_->GetGameSession(player->GetGameSession()->GetMap()->GetId())->DeleteDog(player->GetDog()->GetId());
+    players_->Delete(player);
+    player_tokens_->DeletePlayer(user::Token{token});
+}
+
+void LeaderboardUseCase::SaveToLeaderboard(const std::string& name, std::uint16_t score, std::uint16_t time_in_game_ms) {
+    leaderboard_->SaveRetiredPlayer(name, score, time_in_game_ms);
+}
+
+std::vector<domain::RetiredPlayer> LeaderboardUseCase::GetLeaders(size_t start, size_t max_players) {
+    return leaderboard_->GetLeaders(start, max_players);
+}
+
 const model::Game::Maps& Application::ListMaps() const {
     return list_maps_use_case_.GetMapsList();
 }
@@ -131,7 +146,9 @@ const model::GameSession::IdToDogIndex& Application::ListPlayers(std::string_vie
 }
 
 JoinGameResult Application::JoinGame(const std::string& user_name, const std::string& map_id) {
-    return join_game_use_case_.JoinGame(user_name, map_id);
+    auto join_result = join_game_use_case_.JoinGame(user_name, map_id);
+    NotifyListenersJoin(*join_result.token, tokens_.FindPlayerByToken(join_result.token)->GetDog());
+    return join_result;
 }
 
 bool Application::MoveDog(std::string_view token, std::string_view move) {
@@ -140,9 +157,19 @@ bool Application::MoveDog(std::string_view token, std::string_view move) {
 
 void Application::ProcessTick(std::int64_t tick) {
     process_tick_use_case_.ProcessTick(tick);
-    if (listener_) {
-        listener_->OnTick(std::chrono::milliseconds{tick});
-    }
+    NotifyListenersTick(tick);
+}
+
+void Application::DeletePlayer(const std::string& player_token) {
+    delete_player_use_case_.DeletePlayer(player_token);
+}
+
+void Application::SaveToLeaderboard(const std::string& name, std::uint16_t score, std::uint16_t time_in_game_ms) {
+    leaderboard_use_case_.SaveToLeaderboard(name, score, time_in_game_ms);
+}
+
+std::vector<domain::RetiredPlayer> Application::GetLeaders(size_t start, size_t max_players) {
+    return leaderboard_use_case_.GetLeaders(start, max_players);
 }
 
 bool Application::IsTokenValid(std::string_view token) const {
@@ -153,7 +180,21 @@ bool Application::IsTokenValid(std::string_view token) const {
 }
 
 void Application::SetListener(ApplicationListener* listener) {
-    listener_ = listener;
+    if (listener != nullptr) {
+        listeners_.push_back(listener);
+    }
+}
+
+void Application::NotifyListenersTick(std::int64_t tick) const {
+    for (auto* listener : listeners_) {
+        listener->OnTick(std::chrono::milliseconds{tick});
+    }
+}
+
+void Application::NotifyListenersJoin(std::string token, model::Dog* dog) const {
+    for (auto* listener : listeners_) {
+        listener->OnJoin(token, dog);
+    }
 }
 
 } // namespace app

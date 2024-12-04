@@ -10,7 +10,25 @@ conan_basic_setup(TARGETS)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-add_library(GameModelLib STATIC 
+add_library(Leaderboard STATIC
+    src/leaderboard/app/use_cases.h
+    src/leaderboard/app/use_cases_impl.cpp
+    src/leaderboard/app/use_cases_impl.h
+    src/leaderboard/app/unit_of_work_fwd.h
+    src/leaderboard/app/unit_of_work.h
+    src/leaderboard/domain/retired_player.cpp
+    src/leaderboard/domain/retired_player.h
+    src/leaderboard/domain/retired_player_fwd.h
+    src/tagged.h
+    src/leaderboard/util/tagged_uuid.cpp
+    src/leaderboard/util/tagged_uuid.h
+    src/leaderboard/postgres/postgres.cpp
+    src/leaderboard/postgres/postgres.h
+)
+
+target_link_libraries(Leaderboard PUBLIC CONAN_PKG::boost Threads::Threads CONAN_PKG::libpq CONAN_PKG::libpqxx)
+
+add_library(GameModelLib STATIC
     src/sdk.h
     src/tagged.h
     src/model.h
@@ -32,10 +50,14 @@ add_library(GameModelLib STATIC
     src/game_objects.cpp
     src/model_serialization.h
     src/model_serialization.cpp
+    src/retirement_detector.h
+    src/retirement_detector.cpp
+    src/leaderboard/leaderboard.h
+    src/leaderboard/leaderboard.cpp
 )
 
 target_include_directories(GameModelLib PUBLIC CONAN_PKG::boost)
-target_link_libraries(GameModelLib PUBLIC CONAN_PKG::boost PRIVATE Threads::Threads)
+target_link_libraries(GameModelLib PUBLIC CONAN_PKG::boost Leaderboard PRIVATE Threads::Threads)
 
 add_executable(game_server
     src/main.cpp
@@ -49,6 +71,7 @@ add_executable(game_server
     src/cl_parser.cpp
     src/ticker.h
     src/ticker.cpp
+    src/
 )
 
 add_executable(game_server_tests

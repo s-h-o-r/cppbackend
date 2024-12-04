@@ -353,6 +353,9 @@ void LootOfficeDogProvider::AddGatherer(Dog* gatherer) {
     gatherers_.push_back(gatherer);
 }
 
+void LootOfficeDogProvider::EraseGatherer(Dog* gatherer) {
+    gatherers_.erase(std::find(gatherers_.begin(), gatherers_.end(), gatherer));
+}
 
 const Dog* LootOfficeDogProvider::GetDog(size_t idx) const {
     return gatherers_.at(idx);
@@ -390,6 +393,11 @@ Dog* GameSession::AddDog(std::string_view name) {
     return dogs_.at(dog_id).get();
 }
 
+void GameSession::DeleteDog(const Dog::Id& id) {
+    items_gatherer_provider_.EraseGatherer(dogs_.at(id).get());
+    dogs_.erase(id);
+}
+
 const Dog* GameSession::GetDog(Dog::Id id) const {
     return dogs_.at(id).get();
 }
@@ -414,7 +422,6 @@ void GameSession::UpdateState(std::int64_t tick) {
     UpdateDogsState(tick);
     GenerateLoot(tick);
     HandleCollisions();
-    //GenerateLoot(tick);
 }
 
 std::uint32_t GameSession::GetNextDogId() const {
@@ -605,6 +612,14 @@ void Game::TurnOnRandomSpawn() {
 
 void Game::TurnOffRandomSpawn() {
     random_dog_spawn_ = false;
+}
+
+void Game::SetRetirementTime(double retirement_time) {
+    dog_retirement_time_ = retirement_time;
+}
+
+double Game::GetRetirementTime() const noexcept {
+    return dog_retirement_time_;
 }
 
 void Game::SetDogSpeed(double default_speed) {
