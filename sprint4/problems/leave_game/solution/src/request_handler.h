@@ -178,6 +178,8 @@ private:
                             try {
                                 ProcessApiTick(req, response);
                             } catch (...) {
+                                response.set(http::field::content_type, ContentType::APP_JSON);
+                                response.content_length(response.body().size());
                                 response.result(http::status::ok);
                             }
                         } else {
