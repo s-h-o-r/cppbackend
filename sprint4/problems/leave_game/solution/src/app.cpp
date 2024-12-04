@@ -187,7 +187,9 @@ void Application::SetListener(ApplicationListener* listener) {
 
 void Application::NotifyListenersTick(std::int64_t tick) const {
     for (auto* listener : listeners_) {
-        listener->OnTick(std::chrono::milliseconds{tick});
+        if (listener != nullptr) {
+            listener->OnTick(std::chrono::milliseconds{tick});
+        }
     }
 }
 
