@@ -10,6 +10,7 @@ domain::PlayerId UseCasesImpl::SaveRetiredPlayer(const std::string& name, std::u
     CheckTransaction();
     auto player_id = PlayerId::New();
     transaction_->RetiredPlayers().Save({player_id, name, score, play_time_in_ms});
+    return player_id;
 }
 
 std::vector<domain::RetiredPlayer> UseCasesImpl::GetLeaders(size_t start, size_t max_players) {

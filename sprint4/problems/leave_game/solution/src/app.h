@@ -208,9 +208,14 @@ class Application {
 public:
     friend class serialization::ApplicationRepr;
 
+    explicit Application(model::Game* game)
+    : game_(game) {
+
+    }
+
     explicit Application(model::Game* game, const leaderboard::LeaderboardConfig& config)
         : game_(game)
-        , leaderboard_(config) {
+        , leaderboard_(std::make_shared<leaderboard::Leaderboard>(config)) {
     }
 
     const model::Game::Maps& ListMaps() const;
@@ -232,7 +237,7 @@ private:
     user::Players players_;
     user::PlayerTokens tokens_;
 
-    leaderboard::Leaderboard leaderboard_;
+    std::shared_ptr<leaderboard::Leaderboard> leaderboard_ = nullptr;
 
     std::vector<ApplicationListener*> listeners_;
 
@@ -244,7 +249,7 @@ private:
     ManageDogActionsUseCase manage_dog_actions_use_case_{&players_, &tokens_};
     ProcessTickUseCase process_tick_use_case_{game_};
     DeletePlayerUseCase delete_player_use_case_{game_, &players_, &tokens_};
-    LeaderboardUseCase leaderboard_use_case_{&leaderboard_};
+    LeaderboardUseCase leaderboard_use_case_{leaderboard_.get()};
 
     void NotifyListenersTick(std::int64_t tick) const;
     void NotifyListenersJoin(std::string token, model::Dog* dog) const;

@@ -169,7 +169,7 @@ bool operator==(const Player& lhs, const Player& rhs) {
 
 SCENARIO_METHOD(Fixture, "Game and App Serialization") {
     GIVEN("a game from config.json with sessions on all maps and a dog and a loot") {
-        Game game = json_loader::LoadGame("../tests/test_config.json"s);
+        Game game = json_loader::LoadGame("../../tests/test_config.json"s);
         app::Application app(&game);
         game.SetLootConfig(1., 1.);
 
@@ -216,7 +216,7 @@ SCENARIO_METHOD(Fixture, "Game and App Serialization") {
             InputArchive input_archive{strm};
             serialization::GameRepr repr;
             input_archive >> repr;
-            model::Game restored = json_loader::LoadGame("../tests/test_config.json"s);
+            model::Game restored = json_loader::LoadGame("../../tests/test_config.json"s);
             repr.Restore(&restored);
 
             THEN("It can be deserialized") {
@@ -309,7 +309,7 @@ SCENARIO_METHOD(Fixture, "Game and App Serialization") {
                         serialization::ApplicationRepr repr;
                         input_archive >> repr;
 
-                        model::Game new_game = json_loader::LoadGame("../tests/test_config.json"s);
+                        model::Game new_game = json_loader::LoadGame("../../tests/test_config.json"s);
                         app::Application restored{&new_game};
                         repr.Restore(&restored);
 
