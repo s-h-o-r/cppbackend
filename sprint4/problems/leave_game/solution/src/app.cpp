@@ -162,7 +162,7 @@ bool Application::MoveDog(std::string_view token, std::string_view move) {
 
 void Application::ProcessTick(std::int64_t tick) {
     process_tick_use_case_.ProcessTick(tick);
-    //NotifyListenersTick(tick);
+    NotifyListenersTick(tick);
 }
 
 void Application::DeletePlayer(const std::string& player_token) {
