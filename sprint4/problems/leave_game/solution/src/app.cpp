@@ -152,12 +152,12 @@ JoinGameResult Application::JoinGame(const std::string& user_name, const std::st
 }
 
 bool Application::MoveDog(std::string_view token, std::string_view move) {
-    if (manage_dog_actions_use_case_.MoveDog(token, move)) {
-        model::Dog* dog = tokens_.FindPlayerByToken(user::Token{std::string(token)})->GetDog();
-        NotifyListenersMove(dog, move);
-        return true;
-    }
-    return false;
+//    if (manage_dog_actions_use_case_.MoveDog(token, move)) {
+//        model::Dog* dog = tokens_.FindPlayerByToken(user::Token{std::string(token)})->GetDog();
+//        //NotifyListenersMove(dog, move);
+//        return true;
+//    }
+    return manage_dog_actions_use_case_.MoveDog(token, move);
 }
 
 void Application::ProcessTick(std::int64_t tick) {
@@ -202,13 +202,13 @@ void Application::NotifyListenersJoin(std::string token, model::Dog* dog) const 
         }
     }
 }
-
-void Application::NotifyListenersMove(model::Dog* dog, std::string_view move) const {
-    for (auto* listener : listeners_) {
-        if (listener != nullptr) {
-            listener->OnMove(dog, move);
-        }
-    }
-}
+//
+//void Application::NotifyListenersMove(model::Dog* dog, std::string_view move) const {
+//    for (auto* listener : listeners_) {
+//        if (listener != nullptr) {
+//            listener->OnMove(dog, move);
+//        }
+//    }
+//}
 
 } // namespace app

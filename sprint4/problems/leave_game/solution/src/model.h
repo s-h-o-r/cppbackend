@@ -269,6 +269,11 @@ private:
     std::vector<Dog*> gatherers_;
 };
 
+class GameSessionListener {
+public:
+    virtual void DogMove(Dog* dog, std::int64_t tick, bool move) = 0;
+};
+
 class GameSession {
 public:
     using Id = util::Tagged<std::uint64_t, GameSession>;
@@ -310,6 +315,10 @@ public:
 
     void Restore(IdToDogIndex&& dogs, std::uint32_t next_dog_id, IdToLootIndex&& loot, std::uint32_t next_loot_id);
 
+    void SetListener(GameSessionListener* listener) {
+        listener_ = listener;
+    }
+
 private:
     const Map* map_;
     IdToDogIndex dogs_;
@@ -320,6 +329,8 @@ private:
     std::uint32_t next_loot_id_ = 0;
     loot_gen::LootGenerator loot_generator_;
     LootOfficeDogProvider items_gatherer_provider_{map_->GetOffices()};
+
+    GameSessionListener* listener_ = nullptr;
 
     void UpdateDogsState(std::int64_t tick);
     void HandleCollisions();
@@ -362,6 +373,10 @@ public:
 
     bool IsDogSpawnRandom() const;
 
+    void SetGameSessionListener(GameSessionListener* listener) {
+        listener_ = listener;
+    }
+
     void UpdateState(std::int64_t tick);
 
 private:
@@ -376,6 +391,8 @@ private:
     LootConfig loot_config_;
 
     SessionsByMaps sessions_;
+
+    GameSessionListener* listener_ = nullptr;
 };
 
 }  // namespace model

@@ -453,6 +453,9 @@ void GameSession::UpdateDogsState(std::int64_t tick) {
 
     for (auto [_, dog] : dogs_) {
         if (dog->IsStopped()) {
+            if (listener_ != nullptr) {
+                listener_->DogMove(dog.get(), tick, false);
+            }
             continue;
         }
 
@@ -503,7 +506,11 @@ void GameSession::UpdateDogsState(std::int64_t tick) {
                 }
             }
         }
+
         dog->SetPosition(relevant_point);
+        if (listener_ != nullptr) {
+            listener_->DogMove(dog.get(), tick, true);
+        }
         if (stopped) {
             dog->Stop();
         }
@@ -582,6 +589,7 @@ GameSession& Game::StartGameSession(const Map* map) {
     using namespace std::chrono_literals;
     if (sessions_[map->GetId()].empty()) {
         sessions_[map->GetId()].push_back(std::make_shared<GameSession>(map, random_dog_spawn_, loot_config_));
+        sessions_[map->GetId()].back()->SetListener(listener_);
     }
     return *sessions_[map->GetId()].back();
 }
