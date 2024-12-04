@@ -412,7 +412,7 @@ private:
                 });
             }
         } catch (const std::exception& e) {
-            body.push_back({e.what()});
+            body.push_back({"message", e.what()});
         }
 
         response.body() = json::serialize(json::value(body));
