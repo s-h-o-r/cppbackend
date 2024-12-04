@@ -388,8 +388,8 @@ Dog* GameSession::AddDog(std::string_view name) {
 
     auto dog = std::make_shared<Dog>(Dog::Id{next_dog_id_++}, std::string(name), dog_pos, default_speed, map_->GetBagCapacity());
     auto dog_id = dog->GetId();
-    dogs_.emplace(dog_id, std::move(dog));
-    items_gatherer_provider_.AddGatherer(dogs_.at(dog_id).get());
+    dogs_.emplace(dog_id, dog);
+    items_gatherer_provider_.AddGatherer(dog.get());
     return dogs_.at(dog_id).get();
 }
 
