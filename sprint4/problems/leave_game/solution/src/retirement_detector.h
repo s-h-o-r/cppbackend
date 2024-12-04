@@ -10,16 +10,6 @@
 
 namespace retirement {
 
-namespace detail {
-
-struct LeaderboardInfo {
-    std::string name;
-    std::uint16_t score;
-    std::uint16_t time_in_game_ms;
-};
-
-} // namespace detail
-
 struct RetirementStatistic {
     std::uint16_t time_in_game = 0;
     std::uint16_t no_action_time = 0;
