@@ -400,15 +400,19 @@ private:
             MakeErrorApiResponse(response, ErrorCode::bad_request, "Imposible to show more then 100 players on 1 list"sv);
         }
 
-        auto leaderboard = app_.GetLeaders(start, max_items);
-
         json::array body;
-        for (const auto& player_info : leaderboard) {
-            body.push_back(json::object{
-                {"name", player_info.GetName()},
-                {"score", player_info.GetScore()},
-                {"playTime", static_cast<double>(player_info.GetPlayTimeInMs()/1000.)}
-            });
+
+        try {
+            auto leaderboard = app_.GetLeaders(start, max_items);
+            for (const auto& player_info : leaderboard) {
+                body.push_back(json::object{
+                    {"name", player_info.GetName()},
+                    {"score", player_info.GetScore()},
+                    {"playTime", static_cast<double>(player_info.GetPlayTimeInMs()/1000.)}
+                });
+            }
+        } catch (const std::exception& e) {
+            body.push_back({e.what()});
         }
 
         response.body() = json::serialize(json::value(body));
