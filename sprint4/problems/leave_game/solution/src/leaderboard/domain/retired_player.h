@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <optional>
+#include <numeric>
 
 #include "../util/tagged_uuid.h"
 
