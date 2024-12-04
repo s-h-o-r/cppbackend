@@ -10,7 +10,7 @@ conan_basic_setup(TARGETS)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-add_library(GameModelLib STATIC 
+add_library(GameModelLib STATIC
     src/sdk.h
     src/tagged.h
     src/model.h
@@ -32,10 +32,26 @@ add_library(GameModelLib STATIC
     src/game_objects.cpp
     src/model_serialization.h
     src/model_serialization.cpp
+    src/retirement_detector.h
+    src/retirement_detector.cpp
+    src/leaderboard/leaderboard.h
+    src/leaderboard/leaderboard.cpp
+    src/leaderboard/app/use_cases.h
+    src/leaderboard/app/use_cases_impl.cpp
+    src/leaderboard/app/use_cases_impl.h
+    src/leaderboard/app/unit_of_work_fwd.h
+    src/leaderboard/app/unit_of_work.h
+    src/leaderboard/domain/retired_player.cpp
+    src/leaderboard/domain/retired_player.h
+    src/leaderboard/domain/retired_player_fwd.h
+    src/leaderboard/util/tagged_uuid.cpp
+    src/leaderboard/util/tagged_uuid.h
+    src/leaderboard/postgres/postgres.cpp
+    src/leaderboard/postgres/postgres.h
 )
 
+target_link_libraries(GameModelLib PUBLIC CONAN_PKG::boost Threads::Threads CONAN_PKG::libpq CONAN_PKG::libpqxx)
 target_include_directories(GameModelLib PUBLIC CONAN_PKG::boost)
-target_link_libraries(GameModelLib PUBLIC CONAN_PKG::boost PRIVATE Threads::Threads)
 
 add_executable(game_server
     src/main.cpp
@@ -49,18 +65,21 @@ add_executable(game_server
     src/cl_parser.cpp
     src/ticker.h
     src/ticker.cpp
-)
-
-add_executable(game_server_tests
-    tests/loot_generator_tests.cpp
-    tests/collision-detector-tests.cpp
-    tests/state-serialization-tests.cpp
+    src/
 )
 
 target_link_libraries(game_server GameModelLib)
-target_link_libraries(game_server_tests CONAN_PKG::catch2 GameModelLib)
+
 
 if(CMAKE_BUILD_TYPE EQUAL "Debug")
+
+    add_executable(game_server_tests
+        tests/loot_generator_tests.cpp
+        tests/collision-detector-tests.cpp
+        tests/state-serialization-tests.cpp
+    )
+    target_link_libraries(game_server_tests CONAN_PKG::catch2 GameModelLib)
+
     include(CTest)
     include(${CONAN_BUILD_DIRS_CATCH2_DEBUG}/Catch.cmake)
     catch_discover_tests(game_server_tests)
