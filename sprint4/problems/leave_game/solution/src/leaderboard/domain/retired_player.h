@@ -3,6 +3,7 @@
 #include <vector>
 #include <optional>
 #include <numeric>
+#include <cstdint>
 
 #include "../util/tagged_uuid.h"
 
@@ -31,11 +32,11 @@ public:
         return name_;
     }
 
-    std::uint64_t GetScore() const noexcept {
+    std::uint32_t GetScore() const noexcept {
         return score_;
     }
 
-    std::uint64_t GetPlayTimeInMs() const noexcept {
+    std::uint32_t GetPlayTimeInMs() const noexcept {
         return play_time_ms_;
     }
 
