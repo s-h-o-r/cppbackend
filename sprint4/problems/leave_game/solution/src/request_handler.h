@@ -388,7 +388,7 @@ private:
 
         int max_items = 100;
         if (params.contains("maxItems"s)) {
-            start = std::stoi(params.at("maxItems"s));
+            max_items = std::stoi(params.at("maxItems"s));
         }
 
         if (max_items > 100) {
