@@ -118,7 +118,6 @@ int main(int argc, const char* argv[]) {
         = std::make_shared<retirement::RetirementListener>(game.GetRetirementTime() , &app);
         
         app.SetListener(retirement_listener.get());
-        game.SetGameSessionListener(retirement_listener.get());
 
         // 2. Инициализируем io_context
         const unsigned num_threads = std::thread::hardware_concurrency();

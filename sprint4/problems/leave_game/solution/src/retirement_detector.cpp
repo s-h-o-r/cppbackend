@@ -3,14 +3,6 @@
 #include <vector>
 
 namespace retirement {
-void RetirementListener::DogMove(model::Dog* dog, std::int64_t tick, bool move) {
-//    dog_retirement_.at(dog).time_in_game += tick;
-//    if (move) {
-//        dog_retirement_.at(dog).no_action_time = 0;
-//    } else {
-//        dog_retirement_.at(dog).no_action_time += tick;
-//    }
-}
 
 void RetirementListener::OnTick(std::chrono::milliseconds delta) {
     std::vector<model::Dog*> dog_for_retirement;

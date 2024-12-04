@@ -15,7 +15,7 @@ struct RetirementStatistic {
     std::uint16_t no_action_time = 0;
 };
 
-class RetirementListener : public model::GameSessionListener, public app::ApplicationListener {
+class RetirementListener : public app::ApplicationListener {
 public:
 
     RetirementListener(double retirement_time_in_sec, app::Application* app)
@@ -23,7 +23,6 @@ public:
     , app_(app) {
     }
 
-    void DogMove(model::Dog* dog, std::int64_t tick, bool move) override;
     void OnTick(std::chrono::milliseconds delta) override;
     void OnJoin(std::string token, model::Dog* dog) override;
 
