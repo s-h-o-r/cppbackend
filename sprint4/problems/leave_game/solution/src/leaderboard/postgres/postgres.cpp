@@ -28,7 +28,7 @@ void RetiredPlayersRepositoryImpl::Save(const domain::RetiredPlayer& player) {
     work_.exec_params(R"(
 INSERT INTO retired_players (id, name, score, play_time_ms) VALUES ($1, $2, $3, $4)
 ON CONFLICT (id) DO UPDATE SET name=$2, score=$3, play_time_ms=$4;
-)"_zv, player.GetId().ToString(), player.GetName(), player.GetScore(), player.GetPlayTimeInMs());
+)"_zv, player.GetId().ToString(), player.GetName(), static_cast<int>(player.GetScore()), static_cast<int>(player.GetPlayTimeInMs()));
 }
 
 std::vector<domain::RetiredPlayer> RetiredPlayersRepositoryImpl::GetLeaders(size_t start, size_t max_players) {

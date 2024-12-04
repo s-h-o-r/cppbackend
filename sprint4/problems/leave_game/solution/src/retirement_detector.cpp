@@ -29,10 +29,10 @@ void RetirementListener::OnTick(std::chrono::milliseconds delta) {
     }
 
     for (model::Dog* dog : dog_for_retirement) {
-        user::Token token dog_to_token_.at(dog);
+        user::Token token{dog_to_token_.at(dog)};
         dog_retirement_.erase(dog);
         dog_to_token_.erase(dog);
-        app_->DeletePlayer(token);
+        app_->DeletePlayer(*token);
     }
 }
 
