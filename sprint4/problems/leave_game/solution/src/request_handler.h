@@ -175,7 +175,11 @@ private:
                 switch (req.method()) {
                     case http::verb::post:
                         if (manual_update_) {
-                            ProcessApiTick(req, response);
+                            try {
+                                ProcessApiTick(req, response);
+                            } catch (...) {
+                                response.result(http::status::ok);
+                            }
                         } else {
                             MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::bad_request,
                                                  "Invalid endpoint"sv);
@@ -204,6 +208,7 @@ private:
         } catch (...) {
             MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::bad_request,
                                  "Uknown error"sv);
+            throw;
         }
 
         send(response);
