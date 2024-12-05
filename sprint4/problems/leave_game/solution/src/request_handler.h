@@ -404,11 +404,12 @@ private:
 
         try {
             auto leaderboard = app_.GetLeaders(start, max_items);
+            double second_multiplier = 1000.;
             for (const auto& player_info : leaderboard) {
                 body.push_back(json::object{
                     {"name", player_info.GetName()},
                     {"score", player_info.GetScore()},
-                    {"playTime", static_cast<double>(player_info.GetPlayTimeInMs()/1000.)}
+                    {"playTime", static_cast<double>(player_info.GetPlayTimeInMs()/second_multiplier)}
                 });
             }
         } catch (const std::exception& e) {

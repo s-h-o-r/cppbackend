@@ -202,13 +202,14 @@ std::unordered_map<std::string, std::string> ParseQuery(std::string_view query) 
 
 void ApiRequestHandler::ProcessApiMaps(StringResponse& response,
                                        std::string_view target) const {
-    if (target.size() > 12 && target[12] != '/') {
+    size_t target_legth = 12;
+    if (target.size() > target_legth && target[target_legth] != '/') {
         MakeErrorApiResponse(response, ApiRequestHandler::ErrorCode::bad_request, "Bad request");
         return;
     }
 
-    if (target.size() > 13) {
-        std::string map_name(target.begin() + 13,
+    if (target.size() > target_legth +1) {
+        std::string map_name(target.begin() + target_legth + 1,
             *(target.end() - 1) == '/' ? target.end() - 1 : target.end());
 
         try {

@@ -29,7 +29,6 @@ add_library(GameModelLib STATIC
     src/collision_detector.cpp
     src/geom.h
     src/game_objects.h
-    src/game_objects.cpp
     src/model_serialization.h
     src/model_serialization.cpp
     src/retirement_detector.h
@@ -41,7 +40,6 @@ add_library(GameModelLib STATIC
     src/leaderboard/app/use_cases_impl.h
     src/leaderboard/app/unit_of_work_fwd.h
     src/leaderboard/app/unit_of_work.h
-    src/leaderboard/domain/retired_player.cpp
     src/leaderboard/domain/retired_player.h
     src/leaderboard/domain/retired_player_fwd.h
     src/leaderboard/util/tagged_uuid.cpp

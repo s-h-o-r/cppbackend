@@ -29,9 +29,6 @@ public:
 
     void SaveRetiredPlayer(const std::string& name, std::uint16_t score, std::uint16_t time_in_game_ms);
     std::vector<domain::RetiredPlayer> GetLeaders(size_t start, size_t max_players);
-
-// возвращает в своих методах тех информацию, полученную через UseCases
-// и отдает ее через наш Application RequestHandler'у, который отдает все дальше
     
 private:
     postgres::Database db_;

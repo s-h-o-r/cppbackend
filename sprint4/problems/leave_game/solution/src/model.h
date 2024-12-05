@@ -22,28 +22,6 @@
 #include "loot_generator.h"
 #include "tagged.h"
 
-/*namespace detail {
-class ThreadChecker {
-public:
-    explicit ThreadChecker(std::atomic_int& counter)
-        : counter_{counter} {
-    }
-
-    ThreadChecker(const ThreadChecker&) = delete;
-    ThreadChecker& operator=(const ThreadChecker&) = delete;
-
-    ~ThreadChecker() {
-        // assert выстрелит, если между вызовом конструктора и деструктора
-        // значение expected_counter_ изменится
-        assert(expected_counter_ == counter_);
-    }
-
-private:
-    std::atomic_int& counter_;
-    int expected_counter_ = ++counter_;
-};
-}
-*/
 namespace model {
 
 enum class Direction {
@@ -119,7 +97,7 @@ private:
     double width_ = 0.5;
 };
 
-class Map { // todo: сделать класс более надежным к ошибкам конфиг файла (вынести все деволтные атрибуты в качестве обязательных в конструктор)
+class Map { // todo: сделать класс более надежным к ошибкам конфиг файла (вынести все дефолтные атрибуты в качестве обязательных в конструктор)
             // пока же дефолтное значение скорости устанавливается через функцию
 public:
     using Id = util::Tagged<std::string, Map>;
@@ -280,7 +258,7 @@ public:
     explicit GameSession(const Map* map, bool random_dog_spawn, const LootConfig& loot_config)
         : map_(map)
         , random_dog_spawn_(random_dog_spawn)
-        , loot_generator_(loot_gen::LootGenerator::TimeInterval(static_cast<int>(loot_config.period * 1000)),
+        , loot_generator_(loot_gen::LootGenerator::TimeInterval(static_cast<int>(loot_config.period * 1000)), // 1000 - is ms multiplier
                           loot_config.probability) {
         if (map == nullptr) {
             throw std::runtime_error("Cannot open game session on empty map");

@@ -60,19 +60,23 @@ bool Road::IsDogOnRoad(geom::Point2D dog_point) const {
 }
 
 double Road::GetLeftEdge() const {
-    return std::min(start_.x, end_.x) - 0.4;
+    double border_offset = 0.4;
+    return std::min(start_.x, end_.x) - border_offset;
 }
 
 double Road::GetRightEdge() const {
-    return std::max(start_.x, end_.x) + 0.4;
+    double border_offset = 0.4;
+    return std::max(start_.x, end_.x) + border_offset;
 }
 
 double Road::GetUpperEdge() const {
-    return std::min(start_.y, end_.y) - 0.4;
+    double border_offset = 0.4;
+    return std::min(start_.y, end_.y) - border_offset;
 }
 
 double Road::GetBottomEdge() const {
-    return std::max(start_.y, end_.y) + 0.4;
+    double border_offset = 0.4;
+    return std::max(start_.y, end_.y) + border_offset;
 }
 
 const geom::Rectangle& Building::GetBounds() const noexcept {

@@ -16,7 +16,9 @@ void ConnectionPool::ReturnConnection(ConnectionPtr&& conn) {
     // Возвращаем соединение обратно в пул
     {
         std::lock_guard lock{mutex_};
-        assert(used_connections_ != 0);
+        if (used_connections_ == 0) {
+            throw std::runtime_error("Imposible to return connection which wasn't used");
+        }
         pool_[--used_connections_] = std::move(conn);
     }
     // Уведомляем один из ожидающих потоков об изменении состояния пула

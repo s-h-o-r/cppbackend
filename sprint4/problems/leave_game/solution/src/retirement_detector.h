@@ -19,7 +19,7 @@ class RetirementListener : public app::ApplicationListener {
 public:
 
     RetirementListener(double retirement_time_in_sec, app::Application* app)
-    : retirement_time_(static_cast<std::uint64_t>(retirement_time_in_sec * 1000))
+    : retirement_time_(static_cast<std::uint64_t>(retirement_time_in_sec * 1000)) // 1000 - ms multiplier
     , app_(app) {
     }
 
