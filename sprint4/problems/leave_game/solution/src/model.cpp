@@ -194,11 +194,11 @@ geom::Point2D Map::GetRandomPoint() const {
         std::uniform_real_distribution double_dist(std::min(rand_road.GetStart().x, rand_road.GetEnd().x) + 0.0,
                                                    std::max(rand_road.GetStart().x, rand_road.GetEnd().x) + 0.0);
         return {static_cast<double>(double_dist(generator)), static_cast<double>(rand_road.GetStart().y)};
-    } else {
-        std::uniform_real_distribution double_dist(std::min(rand_road.GetStart().y, rand_road.GetEnd().y) + 0.0,
-                                                   std::max(rand_road.GetStart().y, rand_road.GetEnd().y) + 0.0);
-        return {static_cast<double>(rand_road.GetStart().x), static_cast<double>(double_dist(generator))};
     }
+    
+    std::uniform_real_distribution double_dist(std::min(rand_road.GetStart().y, rand_road.GetEnd().y) + 0.0,
+                                               std::max(rand_road.GetStart().y, rand_road.GetEnd().y) + 0.0);
+    return {static_cast<double>(rand_road.GetStart().x), static_cast<double>(double_dist(generator))};
 }
 
 geom::Point2D Map::GetDefaultSpawnPoint() const {
