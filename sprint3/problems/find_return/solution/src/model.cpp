@@ -296,9 +296,8 @@ game_obj::Bag<std::shared_ptr<Loot>>* Dog::GetBag() const {
     return &bag_;
 }
 
-LootOfficeDogProvider::LootOfficeDogProvider(GameSession* session)
-: game_session_(session) {
-    for (const auto& office : session->GetMap()->GetOffices()) {
+LootOfficeDogProvider::LootOfficeDogProvider(const Map::Offices& offices) {
+    for (const auto& office : offices) {
         items_.push_back(&office);
     }
 }
@@ -334,13 +333,15 @@ void LootOfficeDogProvider::PushBackLoot(const Loot* loot) {
 }
 
 void LootOfficeDogProvider::EraseLoot(size_t idx) {
-    const Loot* loot = std::get<const Loot*>(items_.at(idx));
-    game_session_->EraseLoot(loot->id);
     items_.erase(items_.begin() + idx);
 }
 
 const std::variant<const Office*, const Loot*>& LootOfficeDogProvider::GetRawItemVal(size_t idx) const {
     return items_.at(idx);
+}
+
+void LootOfficeDogProvider::AddDog(const Dog* dog) {
+    gatherers_.push_back(dog);
 }
 
 const Dog* LootOfficeDogProvider::GetDog(size_t idx) const {
@@ -372,7 +373,8 @@ Dog* GameSession::AddDog(std::string_view name) {
 
     auto dog = std::make_shared<Dog>(std::string(name), dog_pos, default_speed, map_->GetBagCapacity());
     auto dog_id = dog->GetId();
-    dogs_.emplace(dog_id, std::move(dog));
+    dogs_.emplace(dog_id, dog);
+    items_gatherer_provider_.AddDog(dog.get());
     return dogs_.at(dog_id).get();
 }
 
@@ -455,76 +457,6 @@ void GameSession::UpdateDogsState(std::int64_t tick) {
             dog->Stop();
         }
     }
-
-    /*
-     Где-то здесь имеется ошибка в реализации хранения индекса карт по координатам, из-за чего некоторые
-     кейсы неправильно обрабатываются на некоторых платформах (на Mac работает, в Докере падает, тесты
-     не проходит). Не разобрался, потому что не смог нормально запустить дебаггер на платформах, на которых
-     эта реализация падает. Надо будет разобраться и сделать более быстрый варинат обновления сервера
-
-    for (auto [_, dog] : dogs_) {
-        if (dog->IsStopped()) {
-            continue;
-        }
-
-        auto cur_dog_pos = dog->GetPosition();
-        auto dog_speed = dog->GetSpeed();
-        DogPoint new_dog_pos = {cur_dog_pos.x + (dog_speed.s_x * tick_multy),
-            cur_dog_pos.y + (dog_speed.s_y * tick_multy)};
-
-        const Road* vertical_road_with_dog = map_->GetVerticalRoad(cur_dog_pos);
-        const Road* horizontal_road_with_dog = map_->GetHorizontalRoad(cur_dog_pos);
-
-        assert((vertical_road_with_dog != nullptr || horizontal_road_with_dog != nullptr));
-
-        if (vertical_road_with_dog != nullptr && vertical_road_with_dog->IsDogOnRoad(new_dog_pos)) {
-            dog->SetPosition(new_dog_pos);
-            return;
-        }
-
-        if (horizontal_road_with_dog != nullptr && horizontal_road_with_dog->IsDogOnRoad(new_dog_pos)) {
-            dog->SetPosition(new_dog_pos);
-            return;
-        }
-
-        switch (dog->GetDirection()) {
-            case Direction::NORTH: {
-                if (vertical_road_with_dog != nullptr) {
-                    new_dog_pos = {cur_dog_pos.x, vertical_road_with_dog->GetUpperEdge()};
-                } else if (horizontal_road_with_dog != nullptr) {
-                    new_dog_pos = {cur_dog_pos.x, horizontal_road_with_dog->GetUpperEdge()};
-                }
-                break;
-            }
-            case Direction::SOUTH: {
-                if (vertical_road_with_dog != nullptr) {
-                    new_dog_pos = {cur_dog_pos.x, vertical_road_with_dog->GetBottomEdge()};
-                } else if (horizontal_road_with_dog != nullptr) {
-                    new_dog_pos = {cur_dog_pos.x, horizontal_road_with_dog->GetBottomEdge()};
-                }
-                break;
-            }
-            case Direction::WEST: {
-                if (horizontal_road_with_dog != nullptr) {
-                    new_dog_pos = {horizontal_road_with_dog->GetLeftEdge(), cur_dog_pos.y};
-                } else if (vertical_road_with_dog != nullptr) {
-                    new_dog_pos = {vertical_road_with_dog->GetLeftEdge(), cur_dog_pos.y};
-                }
-                break;
-            }
-            case Direction::EAST: {
-                if (horizontal_road_with_dog != nullptr) {
-                    new_dog_pos = {horizontal_road_with_dog->GetRightEdge(), cur_dog_pos.y};
-                } else if (vertical_road_with_dog != nullptr) {
-                    new_dog_pos = {vertical_road_with_dog->GetRightEdge(), cur_dog_pos.y};
-                }
-                break;
-            }
-        }
-        dog->SetPosition(new_dog_pos);
-        dog->Stop();
-    }
-     */
 }
 
 void GameSession::HandleCollisions() {
@@ -549,6 +481,7 @@ void GameSession::HandleCollisions() {
 
     // убираем из prvider и session весь лишний лут
     for (size_t id : items_to_erase) {
+        loot_.erase(std::get<const Loot*>(items_gatherer_provider_.GetRawItemVal(id))->id);
         items_gatherer_provider_.EraseLoot(id);
     }
 
